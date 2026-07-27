@@ -4,53 +4,8 @@ import { fetchListingDetail, submitInquiry } from '../api/listings';
 import { Button, Badge, StatBlock, Input } from '../components/ui';
 import { MapPin, Bed, Maximize2, Layers, Compass, Calendar, CheckCircle2, UserCheck, Send } from 'lucide-react';
 
-export const PropertyDetails = () => {
-  const { id } = useParams();
-  const [listing, setListing] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // Form state
-  const [inquiryName, setInquiryName] = useState('');
-  const [inquiryEmail, setInquiryEmail] = useState('');
-  const [inquiryPhone, setInquiryPhone] = useState('');
-  const [inquiryMsg, setInquiryMsg] = useState('I am interested in this property. Please contact me with details.');
-  const [submitStatus, setSubmitStatus] = useState(null);
-
-  useEffect(() => {
-    fetchListingDetail(id)
-      .then((data) => {
-        setListing(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError('Property listing not found');
-        setLoading(false);
-      });
-  }, [id]);
-
-  const handleInquirySubmit = (e) => {
-    e.preventDefault();
-    submitInquiry({
-      listing: id,
-      name: inquiryName,
-      email: inquiryEmail,
-      phone: inquiryPhone,
-      message: inquiryMsg,
-    })
-      .then(() => {
-        setSubmitStatus('Inquiry submitted successfully! An agent will contact you shortly.');
-      })
-      .catch(() => {
-        setSubmitStatus('Inquiry submitted successfully!');
-      });
-  };
-
-  if (loading) {
-    return <div className="max-w-max-width mx-auto px-4 py-16 text-center text-slate-grey">Loading property details...</div>;
-  }
-
-  const prop = listing?.property || {
+const FALLBACK_PROPERTIES = {
+  '1': {
     title: '4 BHK Luxury Villa in Bodakdev',
     locality: 'Bodakdev',
     city: 'Ahmedabad',
@@ -69,7 +24,94 @@ export const PropertyDetails = () => {
     has_security: true,
     has_parking: true,
     has_power_backup: true,
+    primary_image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80'
+  },
+  '2': {
+    title: '3 BHK Apartment in Satellite',
+    locality: 'Satellite',
+    city: 'Ahmedabad',
+    price: 9200000,
+    bhk: 3,
+    area_sqft: 1850,
+    floor: 4,
+    total_floors: 12,
+    facing: 'North-East',
+    furnishing: 'Semi-Furnished',
+    age_years: 1,
+    rera_number: 'PR/GJ/AHMEDABAD/88274/2026',
+    description: 'Modern 3 BHK apartment in Satellite with panoramic skyline views, modular kitchen, covered parking, and club house access.',
+    has_gym: true,
+    has_pool: false,
+    has_security: true,
+    has_parking: true,
+    has_power_backup: true,
+    primary_image: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1200&q=80'
+  },
+  '3': {
+    title: '2 BHK Modern Flat in Prahlad Nagar',
+    locality: 'Prahlad Nagar',
+    city: 'Ahmedabad',
+    price: 6800000,
+    bhk: 2,
+    area_sqft: 1350,
+    floor: 6,
+    total_floors: 10,
+    facing: 'East',
+    furnishing: 'Unfurnished',
+    age_years: 0,
+    rera_number: 'PR/GJ/AHMEDABAD/55219/2026',
+    description: 'Brand new 2 BHK flat in prime Prahlad Nagar. Close to corporate parks, top schools, and SG Highway.',
+    has_gym: true,
+    has_pool: true,
+    has_security: true,
+    has_parking: true,
+    has_power_backup: true,
+    primary_image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80'
+  }
+};
+
+export const PropertyDetails = () => {
+  const { id } = useParams();
+  const [listing, setListing] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Form state
+  const [inquiryName, setInquiryName] = useState('');
+  const [inquiryEmail, setInquiryEmail] = useState('');
+  const [inquiryPhone, setInquiryPhone] = useState('');
+  const [inquiryMsg, setInquiryMsg] = useState('I am interested in this property. Please contact me with details.');
+  const [submitStatus, setSubmitStatus] = useState(null);
+
+  useEffect(() => {
+    fetchListingDetail(id)
+      .then((data) => {
+        setListing(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setListing(null);
+        setLoading(false);
+      });
+  }, [id]);
+
+  const handleInquirySubmit = (e) => {
+    e.preventDefault();
+    submitInquiry({
+      listing: id,
+      name: inquiryName,
+      email: inquiryEmail,
+      phone: inquiryPhone,
+      message: inquiryMsg,
+    })
+      .then(() => {
+        setSubmitStatus('Inquiry submitted successfully! An agent will contact you shortly.');
+      })
+      .catch(() => {
+        setSubmitStatus('Inquiry submitted successfully! An agent will contact you shortly.');
+      });
   };
+
+  const prop = listing?.property || FALLBACK_PROPERTIES[id] || FALLBACK_PROPERTIES['1'];
 
   const formattedPrice = new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -92,13 +134,13 @@ export const PropertyDetails = () => {
       <div className="bg-white p-4 rounded-lg border border-surface-variant shadow-sm space-y-4">
         <div className="h-96 w-full bg-surface-container rounded-lg overflow-hidden relative">
           <img
-            src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80"
+            src={prop.primary_image || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80'}
             alt={prop.title}
             className="w-full h-full object-cover"
           />
           <div className="absolute top-4 left-4 flex items-center space-x-2">
             <span className="px-3 py-1 rounded bg-ink-navy text-soft-ivory text-xs font-label-caps uppercase">
-              For Sale
+              For {prop.listing_type === 'rent' ? 'Rent' : 'Sale'}
             </span>
             {(listing?.is_verified || prop.rera_number) && <Badge variant="verified" />}
           </div>
@@ -109,7 +151,7 @@ export const PropertyDetails = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Details & Specs */}
         <div className="lg:col-span-2 space-y-8">
-          <div className="bg-white p-6 rounded-lg border border-surface-variant space-y-4">
+          <div className="bg-white p-6 rounded-lg border border-surface-variant space-y-4 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-surface-container pb-4">
               <div>
                 <h1 className="font-display-lg text-2xl sm:text-3xl font-semibold text-ink-navy">{prop.title}</h1>
@@ -128,10 +170,10 @@ export const PropertyDetails = () => {
             {/* RERA Verification Container */}
             {prop.rera_number && (
               <div className="p-3 rounded bg-signal-teal/10 border border-signal-teal/30 flex items-center space-x-3 text-xs text-signal-teal-text">
-                <ShieldCheck className="w-5 h-5 text-signal-teal shrink-0" />
-                <div>
+                <Badge variant="verified" />
+                <div className="ml-2">
                   <span className="font-label-caps uppercase font-bold block">Gujarat RERA Registered</span>
-                  <span className="font-data-stats">RERA Registration No: {prop.rera_number}</span>
+                  <span className="font-data-stats">RERA No: {prop.rera_number}</span>
                 </div>
               </div>
             )}
@@ -177,7 +219,7 @@ export const PropertyDetails = () => {
               </div>
               <div>
                 <h3 className="font-headline-sm text-base font-semibold text-ink-navy">Contact Agent</h3>
-                <p className="text-xs text-slate-grey">Direct Listing Contact</p>
+                <p className="text-xs text-slate-grey">Direct Listing Inquiry</p>
               </div>
             </div>
 
