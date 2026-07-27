@@ -81,12 +81,10 @@ export const Navbar = () => {
               <span>Dashboard</span>
             </Link>
 
-            <Link to="/login">
-              <Button variant="secondary" size="sm" className="ml-2">
-                <LogIn className="w-3.5 h-3.5 mr-1" />
-                Sign In
-              </Button>
-            </Link>
+            <Button to="/login" variant="secondary" size="sm" className="ml-2">
+              <LogIn className="w-3.5 h-3.5 mr-1" />
+              Sign In
+            </Button>
           </div>
         </div>
       </div>

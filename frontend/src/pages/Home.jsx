@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchBackendHealth } from '../api/client';
 import { fetchListings } from '../api/listings';
-import { PropertyCard, Button, Badge } from '../components/ui';
-import { Search, Building2, ShieldCheck, Sparkles, Activity, Calculator, ArrowRight } from 'lucide-react';
+import { PropertyCard, Button } from '../components/ui';
+import { Search, Building2, Sparkles, Activity, ArrowRight } from 'lucide-react';
 
 export const Home = () => {
   const [health, setHealth] = useState(null);
@@ -53,7 +53,7 @@ export const Home = () => {
               <select
                 value={searchCity}
                 onChange={(e) => setSearchCity(e.target.value)}
-                className="bg-transparent text-ink-navy font-body-md text-sm focus:outline-none w-full"
+                className="bg-transparent text-ink-navy font-body-md text-sm focus:outline-none w-full cursor-pointer"
               >
                 <option value="Ahmedabad">Ahmedabad (Launch City)</option>
                 <option value="Mumbai">Mumbai</option>
@@ -63,12 +63,10 @@ export const Home = () => {
               </select>
             </div>
 
-            <Link to={`/search?city=${encodeURIComponent(searchCity)}`} className="w-full sm:w-auto">
-              <Button variant="primary" className="w-full sm:w-auto px-6">
-                <Search className="w-4 h-4 mr-2" />
-                Explore Listings
-              </Button>
-            </Link>
+            <Button to={`/search?city=${encodeURIComponent(searchCity)}`} variant="primary" className="w-full sm:w-auto px-6">
+              <Search className="w-4 h-4 mr-2" />
+              Explore Listings
+            </Button>
           </div>
         </div>
       </section>
