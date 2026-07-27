@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { calculateEMI, calculateStampDuty, calculateLoanEligibility } from '../api/listings';
 import { Button, Input, StatBlock } from '../components/ui';
-import { Calculator, Percent, Landmark, Wallet } from 'lucide-react';
+import { Calculator, Landmark, Wallet } from 'lucide-react';
 
 export const Calculators = () => {
   const [activeTab, setActiveTab] = useState('emi');
@@ -23,35 +23,135 @@ export const Calculators = () => {
   const [existingEmis, setExistingEmis] = useState('15000');
   const [eligibilityResult, setEligibilityResult] = useState(null);
 
+  // Instant Client-Side Computation Fallbacks
+  const computeClientEMI = (pVal, rVal, tVal) => {
+    const p = parseFloat(pVal) || 0;
+    const annualRate = parseFloat(rVal) || 0;
+    const tenure = parseInt(tVal) || 1;
+
+    if (p <= 0 || annualRate <= 0 || tenure <= 0) return null;
+
+    const r = (annualRate / 12) / 100;
+    const n = tenure * 12;
+    const emi = (p * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+    const totalPayment = emi * n;
+    const totalInterest = totalPayment - p;
+
+    return {
+      monthly_emi: Math.round(emi),
+      total_interest: Math.round(totalInterest),
+      total_payment: Math.round(totalPayment),
+      principal: p
+    };
+  };
+
+  const computeClientStampDuty = (stateVal, valStr, genderVal) => {
+    const val = parseFloat(valStr) || 0;
+    if (val <= 0) return null;
+
+    const stateRates = {
+      gujarat: { male: 4.9, female: 4.9, joint: 4.9, reg: 1.0 },
+      maharashtra: { male: 5.0, female: 4.0, joint: 4.5, reg: 1.0 },
+      delhi: { male: 6.0, female: 4.0, joint: 5.0, reg: 1.0 },
+      karnataka: { male: 5.0, female: 5.0, joint: 5.0, reg: 1.0 },
+      haryana: { male: 7.0, female: 5.0, joint: 6.0, reg: 1.0 },
+    };
+
+    const stKey = (stateVal || 'gujarat').toLowerCase().trim();
+    const rates = stateRates[stKey] || stateRates.gujarat;
+    const stampRate = rates[genderVal] || rates.male;
+    const regRate = rates.reg;
+
+    const stampAmt = (val * stampRate) / 100;
+    const regAmt = (val * regRate) / 100;
+
+    return {
+      state: stateVal,
+      property_value: val,
+      stamp_duty_percentage: stampRate,
+      stamp_duty_amount: Math.round(stampAmt),
+      registration_fee: Math.round(regAmt),
+      total_tax: Math.round(stampAmt + regAmt)
+    };
+  };
+
+  const computeClientEligibility = (incStr, emiStr, tStr) => {
+    const income = parseFloat(incStr) || 0;
+    const existing = parseFloat(emiStr) || 0;
+    const tenure = parseInt(tStr) || 20;
+
+    const availableEmi = (income * 0.5) - existing;
+    if (availableEmi <= 0) {
+      return {
+        max_eligible_loan: 0,
+        max_affordable_emi: 0,
+        message: 'Existing EMIs exceed 50% FOIR threshold'
+      };
+    }
+
+    const r = (8.5 / 12) / 100;
+    const n = tenure * 12;
+    const maxLoan = (availableEmi * (Math.pow(1 + r, n) - 1)) / (r * Math.pow(1 + r, n));
+
+    return {
+      max_eligible_loan: Math.round(maxLoan),
+      max_affordable_emi: Math.round(availableEmi),
+      tenure_years: tenure,
+      interest_rate: 8.5
+    };
+  };
+
+  // Run initial calculations on load
+  useEffect(() => {
+    setEmiResult(computeClientEMI(loanAmount, interestRate, tenureYears));
+    setStampResult(computeClientStampDuty(stampState, propValue, gender));
+    setEligibilityResult(computeClientEligibility(monthlyIncome, existingEmis, tenureYears));
+  }, []);
+
   const handleCalculateEMI = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
+    const localRes = computeClientEMI(loanAmount, interestRate, tenureYears);
+    setEmiResult(localRes);
+
     calculateEMI({
       loan_amount: parseFloat(loanAmount),
       interest_rate: parseFloat(interestRate),
       tenure_years: parseInt(tenureYears),
-    }).then(setEmiResult);
+    })
+      .then(setEmiResult)
+      .catch(() => {});
   };
 
   const handleCalculateStampDuty = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
+    const localRes = computeClientStampDuty(stampState, propValue, gender);
+    setStampResult(localRes);
+
     calculateStampDuty({
       state: stampState,
       property_value: parseFloat(propValue),
       gender: gender,
-    }).then(setStampResult);
+    })
+      .then(setStampResult)
+      .catch(() => {});
   };
 
   const handleCalculateEligibility = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
+    const localRes = computeClientEligibility(monthlyIncome, existingEmis, tenureYears);
+    setEligibilityResult(localRes);
+
     calculateLoanEligibility({
       monthly_income: parseFloat(monthlyIncome),
       existing_emis: parseFloat(existingEmis),
       tenure_years: parseInt(tenureYears),
-    }).then(setEligibilityResult);
+    })
+      .then(setEligibilityResult)
+      .catch(() => {});
   };
 
   const formatCurrency = (val) => {
-    if (!val) return '₹0';
+    if (val === undefined || val === null) return '₹0';
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
   };
 
@@ -76,8 +176,9 @@ export const Calculators = () => {
           return (
             <button
               key={tab.id}
+              type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 px-4 py-2.5 rounded text-xs font-label-caps uppercase transition-colors ${
+              className={`flex items-center space-x-2 px-4 py-2.5 rounded text-xs font-label-caps uppercase transition-colors cursor-pointer ${
                 activeTab === tab.id
                   ? 'bg-ink-navy text-soft-ivory'
                   : 'text-slate-grey hover:text-ink-navy hover:bg-surface-container'
@@ -148,7 +249,7 @@ export const Calculators = () => {
               <select
                 value={stampState}
                 onChange={(e) => setStampState(e.target.value)}
-                className="w-full px-3 py-2 rounded bg-surface-container-lowest border border-outline/40 text-ink-navy text-sm focus:outline-none focus:border-warm-brass"
+                className="w-full px-3 py-2 rounded bg-surface-container-lowest border border-outline/40 text-ink-navy text-sm focus:outline-none focus:border-warm-brass cursor-pointer"
               >
                 <option value="Gujarat">Gujarat (4.9% Stamp Duty)</option>
                 <option value="Maharashtra">Maharashtra (5.0% Stamp Duty)</option>
@@ -170,7 +271,7 @@ export const Calculators = () => {
               <select
                 value={gender}
                 onChange={(e) => setGender(e.target.value)}
-                className="w-full px-3 py-2 rounded bg-surface-container-lowest border border-outline/40 text-ink-navy text-sm focus:outline-none focus:border-warm-brass"
+                className="w-full px-3 py-2 rounded bg-surface-container-lowest border border-outline/40 text-ink-navy text-sm focus:outline-none focus:border-warm-brass cursor-pointer"
               >
                 <option value="male">Male Owner</option>
                 <option value="female">Female Owner (Concession applicable)</option>
