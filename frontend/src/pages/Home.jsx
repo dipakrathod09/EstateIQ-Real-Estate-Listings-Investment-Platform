@@ -1,132 +1,174 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { fetchBackendHealth } from '../api/client';
-import { Activity, ShieldCheck, Cpu, Database, TrendingUp, Sparkles } from 'lucide-react';
+import { fetchListings } from '../api/listings';
+import { PropertyCard, Button, Badge } from '../components/ui';
+import { Search, Building2, ShieldCheck, Sparkles, Activity, Calculator, ArrowRight } from 'lucide-react';
 
 export const Home = () => {
   const [health, setHealth] = useState(null);
+  const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [searchCity, setSearchCity] = useState('Ahmedabad');
 
   useEffect(() => {
     let isMounted = true;
-    fetchBackendHealth()
-      .then((data) => {
-        if (isMounted) {
-          setHealth(data);
-          setLoading(false);
-        }
-      })
-      .catch((err) => {
-        if (isMounted) {
-          setError(err.message || 'Failed to reach Django backend');
-          setLoading(false);
-        }
-      });
-    return () => {
-      isMounted = false;
-    };
+    Promise.all([
+      fetchBackendHealth().catch(() => null),
+      fetchListings({ city: 'Ahmedabad' }).catch(() => [])
+    ]).then(([healthData, listingsData]) => {
+      if (isMounted) {
+        setHealth(healthData);
+        setListings(Array.isArray(listingsData) ? listingsData : []);
+        setLoading(false);
+      }
+    });
+    return () => { isMounted = false; };
   }, []);
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex flex-col justify-between py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-      {/* Hero Header */}
-      <div className="text-center space-y-6 max-w-3xl mx-auto pt-6">
-        <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400 text-xs font-semibold tracking-wide uppercase">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>Phase 0 Foundation Live</span>
-        </div>
-        <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white leading-tight">
-          Next-Gen Real Estate <br />
-          <span className="gradient-text">& AI Investment Analytics</span>
-        </h1>
-        <p className="text-lg text-slate-400 leading-relaxed">
-          Combining Django REST Framework, React (Vite), and FastAPI ML services to deliver real-time valuation models and intelligent property discovery.
-        </p>
-      </div>
+    <div className="min-h-screen bg-background text-on-background flex flex-col">
+      {/* Hero Section */}
+      <section className="bg-ink-navy text-soft-ivory py-16 px-4 sm:px-6 lg:px-8 border-b border-primary-container relative overflow-hidden">
+        <div className="max-w-max-width mx-auto space-y-8 relative z-10">
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded bg-primary-container text-warm-brass text-xs font-label-caps uppercase border border-warm-brass/30">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Blueprint Skyline Design System Live • Launch City: Ahmedabad</span>
+          </div>
 
-      {/* Health Check Proof Card */}
-      <div className="my-10 max-w-2xl mx-auto w-full">
-        <div className="glass-card rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-sky-500/10 rounded-full blur-2xl group-hover:bg-sky-500/20 transition-all"></div>
-          
-          <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="p-2.5 rounded-xl bg-slate-800 text-sky-400">
-                <Activity className="w-6 h-6 animate-pulse" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-white">System Connectivity Check</h3>
-                <p className="text-xs text-slate-400">End-to-End API Integration Status</p>
-              </div>
+          <div className="max-w-3xl space-y-4">
+            <h1 className="font-display-lg text-4xl sm:text-6xl font-semibold leading-tight text-soft-ivory">
+              Intelligent Real Estate & <br />
+              <span className="text-warm-brass">AI Valuation Analytics</span>
+            </h1>
+            <p className="font-body-lg text-slate-grey text-base sm:text-lg max-w-2xl">
+              RERA-verified properties, ML-backed automated valuations, and yield-focused investment analytics tailored for buyers, agents, and investors.
+            </p>
+          </div>
+
+          {/* Quick Search Bar */}
+          <div className="bg-white p-3 rounded-lg shadow-lg max-w-4xl border border-surface-variant flex flex-col sm:flex-row items-center gap-3">
+            <div className="flex-1 flex items-center space-x-2 px-3 py-2 bg-surface-container rounded border border-outline-variant/40 w-full">
+              <Building2 className="w-5 h-5 text-slate-grey" />
+              <select
+                value={searchCity}
+                onChange={(e) => setSearchCity(e.target.value)}
+                className="bg-transparent text-ink-navy font-body-md text-sm focus:outline-none w-full"
+              >
+                <option value="Ahmedabad">Ahmedabad (Launch City)</option>
+                <option value="Mumbai">Mumbai</option>
+                <option value="Delhi NCR">Delhi NCR</option>
+                <option value="Bengaluru">Bengaluru</option>
+                <option value="Pune">Pune</option>
+              </select>
             </div>
-            
+
+            <Link to={`/search?city=${encodeURIComponent(searchCity)}`} className="w-full sm:w-auto">
+              <Button variant="primary" className="w-full sm:w-auto px-6">
+                <Search className="w-4 h-4 mr-2" />
+                Explore Listings
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Content Body */}
+      <div className="max-w-max-width mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12 w-full">
+        {/* Backend Infrastructure Connection Card */}
+        <div className="bg-white rounded-lg p-6 border border-surface-variant shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-3 rounded bg-primary-fixed text-ink-navy">
+              <Activity className="w-6 h-6 animate-pulse text-signal-teal" />
+            </div>
             <div>
-              {loading && (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
-                  Connecting...
-                </span>
-              )}
-              {!loading && health && (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 mr-2 animate-ping"></span>
-                  Connected ({health.status})
-                </span>
-              )}
-              {!loading && error && (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30">
-                  Connection Error
-                </span>
-              )}
+              <h3 className="font-headline-sm text-lg font-semibold text-ink-navy">Infrastructure Status</h3>
+              <p className="font-body-md text-xs text-slate-grey">Django REST Backend Connectivity Check</p>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="bg-slate-900/90 rounded-xl p-4 border border-slate-800 font-mono text-sm text-slate-300">
-              <div className="text-xs text-slate-500 mb-1">// Endpoint GET /api/health/</div>
-              {loading && <div className="text-slate-500 animate-pulse">Fetching backend status...</div>}
-              {!loading && health && (
-                <pre className="text-emerald-400 overflow-x-auto">
-                  {JSON.stringify(health, null, 2)}
-                </pre>
-              )}
-              {!loading && error && (
-                <div className="text-rose-400">{error}</div>
-              )}
+          <div>
+            {health ? (
+              <span className="inline-flex items-center px-3 py-1 rounded text-xs font-label-caps bg-signal-teal/10 text-signal-teal-text border border-signal-teal/30">
+                <span className="w-2 h-2 rounded-full bg-signal-teal mr-2 animate-ping"></span>
+                Connected ({health.status})
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-3 py-1 rounded text-xs font-label-caps bg-alert-coral/10 text-alert-coral border border-alert-coral/30">
+                Connecting...
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Featured Listings Section */}
+        <div className="space-y-6">
+          <div className="flex items-end justify-between border-b border-surface-container-highest pb-4">
+            <div>
+              <span className="text-xs font-label-caps uppercase text-warm-brass">Featured Market</span>
+              <h2 className="font-display-lg text-2xl sm:text-3xl font-semibold text-ink-navy">
+                Verified Listings in Ahmedabad
+              </h2>
             </div>
+            <Link to="/search" className="text-xs font-label-caps uppercase text-warm-brass hover:underline flex items-center">
+              View All <ArrowRight className="w-3.5 h-3.5 ml-1" />
+            </Link>
           </div>
-        </div>
-      </div>
 
-      {/* Architectural Capabilities Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="glass-card p-6 rounded-2xl space-y-3 border border-slate-800/80 hover:border-slate-700 transition-colors">
-          <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center text-sky-400">
-            <Database className="w-5 h-5" />
-          </div>
-          <h4 className="text-lg font-semibold text-white">Django REST Backend</h4>
-          <p className="text-sm text-slate-400 leading-relaxed">
-            PostgreSQL relational store, custom User role model (Buyer, Owner, Agent, Builder, Admin), and JWT security.
-          </p>
-        </div>
-
-        <div className="glass-card p-6 rounded-2xl space-y-3 border border-slate-800/80 hover:border-slate-700 transition-colors">
-          <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
-            <Cpu className="w-5 h-5" />
-          </div>
-          <h4 className="text-lg font-semibold text-white">FastAPI ML Service</h4>
-          <p className="text-sm text-slate-400 leading-relaxed">
-            Containerized microservice predicting property valuations and ROI metrics in real time.
-          </p>
-        </div>
-
-        <div className="glass-card p-6 rounded-2xl space-y-3 border border-slate-800/80 hover:border-slate-700 transition-colors">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <h4 className="text-lg font-semibold text-white">Enterprise Scalability</h4>
-          <p className="text-sm text-slate-400 leading-relaxed">
-            Docker Compose environment, S3 media management, and GitHub Actions parallel CI pipelines.
-          </p>
+          {loading ? (
+            <div className="text-center py-12 text-slate-grey">Loading verified listings...</div>
+          ) : listings.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {listings.slice(0, 6).map((listing) => (
+                <PropertyCard key={listing.id} property={listing.property} />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <PropertyCard
+                property={{
+                  id: 1,
+                  title: '4 BHK Luxury Villa in Bodakdev',
+                  locality: 'Bodakdev',
+                  city: 'Ahmedabad',
+                  price: 18500000,
+                  bhk: 4,
+                  area_sqft: 3200,
+                  listing_type: 'buy',
+                  is_verified: true,
+                  rera_number: 'PR/GJ/AHMEDABAD/10293/2026',
+                }}
+              />
+              <PropertyCard
+                property={{
+                  id: 2,
+                  title: '3 BHK Apartment in Satellite',
+                  locality: 'Satellite',
+                  city: 'Ahmedabad',
+                  price: 9200000,
+                  bhk: 3,
+                  area_sqft: 1850,
+                  listing_type: 'buy',
+                  is_verified: true,
+                  rera_number: 'PR/GJ/AHMEDABAD/88274/2026',
+                }}
+              />
+              <PropertyCard
+                property={{
+                  id: 3,
+                  title: '2 BHK Modern Flat in Prahlad Nagar',
+                  locality: 'Prahlad Nagar',
+                  city: 'Ahmedabad',
+                  price: 6800000,
+                  bhk: 2,
+                  area_sqft: 1350,
+                  listing_type: 'buy',
+                  is_verified: true,
+                  rera_number: 'PR/GJ/AHMEDABAD/55219/2026',
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

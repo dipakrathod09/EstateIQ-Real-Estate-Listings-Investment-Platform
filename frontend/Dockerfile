@@ -1,12 +1,18 @@
-FROM node:20-alpine
+# Stage 1: Build static bundle
+FROM node:20-alpine as builder
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+RUN npm ci || npm install
 
 COPY . .
+RUN npm run build
 
-EXPOSE 5173
+# Stage 2: Serve via Nginx
+FROM nginx:alpine
 
-CMD ["npm", "run", "dev"]
+COPY --from=builder /app/dist /usr/share/nginx/html
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

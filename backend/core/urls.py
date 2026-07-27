@@ -1,11 +1,16 @@
 from django.contrib import admin
 from django.urls import path, include
-from core.views import health_check
+from core.views import health_check, robots_txt, sitemap_xml
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/health/', health_check, name='health-check'),
+    path('robots.txt', robots_txt, name='robots-txt'),
+    path('sitemap.xml', sitemap_xml, name='sitemap-xml'),
+    path('api/', include('users.urls')),
+    path('api/', include('listings.urls')),
 ]
+
 
 try:
     from rest_framework_simplejwt.views import (

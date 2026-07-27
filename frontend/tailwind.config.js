@@ -1,27 +1,117 @@
-/** @type {import('tailwindcss').Config} */
+/**
+ * EstateIQ — "Blueprint Skyline" design system
+ * Canonical Tailwind config. Do not let individual components or pages
+ * redefine these values — this file is the single source of truth.
+ */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
-        brand: {
-          50: '#f0f7ff',
-          100: '#e0effe',
-          500: '#0284c7',
-          600: '#0284c7',
-          700: '#0369a1',
-          900: '#0c4a6e',
-        },
-        dark: {
-          800: '#1e293b',
-          900: '#0f172a',
-          950: '#020617',
-        }
+        "ink-navy": "#12283C",
+        "soft-ivory": "#F7F5F0",
+        "warm-brass": "#B98B4E",
+        "slate-grey": "#5C6B73",
+        "signal-teal": "#1F7A6C",
+        "signal-teal-text": "#155E52",
+        "alert-coral": "#E2574C",
+
+        "primary": "#12283C",
+        "on-primary": "#F7F5F0",
+        "primary-container": "#1E3A52",
+        "on-primary-container": "#F7F5F0",
+        "primary-fixed": "#DCE6EE",
+        "primary-fixed-dim": "#7B90A8",
+        "on-primary-fixed": "#12283C",
+        "on-primary-fixed-variant": "#34495E",
+        "inverse-primary": "#7B90A8",
+
+        "secondary": "#5C6B73",
+        "on-secondary": "#FFFFFF",
+        "secondary-container": "#E1DFDB",
+        "on-secondary-container": "#3D4548",
+        "secondary-fixed": "#E1DFDB",
+        "secondary-fixed-dim": "#C8C6C2",
+        "on-secondary-fixed": "#1B1C19",
+        "on-secondary-fixed-variant": "#474744",
+
+        "tertiary": "#7A5A2E",
+        "on-tertiary": "#FFFFFF",
+        "tertiary-container": "#B98B4E",
+        "on-tertiary-container": "#12283C",
+        "tertiary-fixed": "#F1D9B5",
+        "tertiary-fixed-dim": "#B98B4E",
+        "on-tertiary-fixed": "#2A1800",
+        "on-tertiary-fixed-variant": "#623F07",
+
+        "error": "#E2574C",
+        "on-error": "#FFFFFF",
+        "error-container": "#FBE2DF",
+        "on-error-container": "#7A241D",
+
+        "surface": "#F7F5F0",
+        "background": "#F7F5F0",
+        "on-surface": "#12283C",
+        "on-background": "#12283C",
+        "on-surface-variant": "#5C6B73",
+        "surface-variant": "#EFEAE0",
+        "surface-dim": "#E5E0D5",
+        "surface-bright": "#FFFFFF",
+        "surface-tint": "#12283C",
+        "surface-container-lowest": "#FFFFFF",
+        "surface-container-low": "#FBFAF7",
+        "surface-container": "#F3F0EA",
+        "surface-container-high": "#EDE8E0",
+        "surface-container-highest": "#E7E1D7",
+
+        "outline": "#5C6B73",
+        "outline-variant": "#C4C6CD",
+        "inverse-surface": "#243239",
+        "inverse-on-surface": "#F7F5F0",
+      },
+      fontFamily: {
+        "display-lg": ["EB Garamond", "serif"],
+        "display-lg-mobile": ["EB Garamond", "serif"],
+        "headline-md": ["EB Garamond", "serif"],
+        "headline-sm": ["EB Garamond", "serif"],
+        "body-lg": ["Inter", "sans-serif"],
+        "body-md": ["Inter", "sans-serif"],
+        "label-caps": ["Inter", "sans-serif"],
+        "data-price": ["JetBrains Mono", "monospace"],
+        "data-stats": ["JetBrains Mono", "monospace"],
+        "data-md": ["JetBrains Mono", "monospace"],
+        "data-sm": ["JetBrains Mono", "monospace"],
+      },
+      fontSize: {
+        "display-lg": ["48px", { lineHeight: "56px", letterSpacing: "-0.02em", fontWeight: "600" }],
+        "display-lg-mobile": ["36px", { lineHeight: "42px", fontWeight: "600" }],
+        "headline-md": ["32px", { lineHeight: "40px", fontWeight: "500" }],
+        "headline-sm": ["24px", { lineHeight: "32px", fontWeight: "500" }],
+        "body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
+        "body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+        "label-caps": ["12px", { lineHeight: "16px", fontWeight: "700", letterSpacing: "0.05em" }],
+        "data-price": ["20px", { lineHeight: "24px", fontWeight: "500" }],
+        "data-stats": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+        "data-md": ["16px", { lineHeight: "22px", fontWeight: "500" }],
+        "data-sm": ["12px", { lineHeight: "16px", fontWeight: "400" }],
+      },
+      borderRadius: {
+        DEFAULT: "0.5rem",
+        sm: "0.25rem",
+        md: "0.75rem",
+        lg: "1rem",
+        xl: "1.5rem",
+        full: "9999px",
+      },
+      spacing: {
+        unit: "8px",
+        gutter: "24px",
+        "margin-mobile": "16px",
+        "margin-desktop": "64px",
+        "max-width": "1280px",
       },
     },
   },
   plugins: [],
-}
+};
