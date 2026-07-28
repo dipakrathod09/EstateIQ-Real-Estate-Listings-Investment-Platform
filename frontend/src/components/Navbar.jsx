@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Building2, Search, PlusCircle, Calculator, TrendingUp, LayoutDashboard, LogIn, LogOut, User } from 'lucide-react';
+import { Building2, Search, PlusCircle, Calculator, TrendingUp, LayoutDashboard, LogIn, LogOut, User, Menu, X } from 'lucide-react';
 import { Button } from './ui/Button';
 
 export const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const isActive = (path) => location.pathname === path;
 
@@ -21,8 +22,6 @@ export const Navbar = () => {
 
   useEffect(() => {
     loadUser();
-
-    // Listen for custom auth events
     window.addEventListener('auth_change', loadUser);
     window.addEventListener('storage', loadUser);
     return () => {
@@ -30,6 +29,11 @@ export const Navbar = () => {
       window.removeEventListener('storage', loadUser);
     };
   }, []);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -39,11 +43,20 @@ export const Navbar = () => {
     navigate('/');
   };
 
+  const navLinks = [
+    { to: '/search', icon: Search, label: 'Search' },
+    { to: '/investments', icon: TrendingUp, label: 'Invest' },
+    { to: '/calculators', icon: Calculator, label: 'Calculators' },
+    { to: '/list-property', icon: PlusCircle, label: 'List Property', accent: true },
+    { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  ];
+
   return (
     <nav className="sticky top-0 z-50 bg-ink-navy text-soft-ivory border-b border-primary-container shadow-md">
       <div className="max-w-max-width mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center space-x-3 group">
+          {/* Logo */}
+          <Link to="/" className="flex items-center space-x-3 group shrink-0">
             <div className="p-2 rounded bg-warm-brass text-ink-navy shadow-sm group-hover:scale-105 transition-transform">
               <Building2 className="w-5 h-5" />
             </div>
@@ -52,72 +65,31 @@ export const Navbar = () => {
             </span>
           </Link>
 
-          <div className="flex items-center space-x-1 sm:space-x-3">
-            <Link
-              to="/search"
-              className={`flex items-center space-x-1.5 px-3 py-2 rounded text-xs font-label-caps uppercase transition-colors ${
-                isActive('/search')
-                  ? 'bg-primary-container text-warm-brass'
-                  : 'text-soft-ivory/80 hover:text-soft-ivory hover:bg-primary-container/50'
-              }`}
-            >
-              <Search className="w-4 h-4" />
-              <span>Search</span>
-            </Link>
-
-            <Link
-              to="/investments"
-              className={`flex items-center space-x-1.5 px-3 py-2 rounded text-xs font-label-caps uppercase transition-colors ${
-                isActive('/investments')
-                  ? 'bg-primary-container text-warm-brass'
-                  : 'text-soft-ivory/80 hover:text-soft-ivory hover:bg-primary-container/50'
-              }`}
-            >
-              <TrendingUp className="w-4 h-4" />
-              <span>Invest</span>
-            </Link>
-
-            <Link
-              to="/calculators"
-              className={`flex items-center space-x-1.5 px-3 py-2 rounded text-xs font-label-caps uppercase transition-colors ${
-                isActive('/calculators')
-                  ? 'bg-primary-container text-warm-brass'
-                  : 'text-soft-ivory/80 hover:text-soft-ivory hover:bg-primary-container/50'
-              }`}
-            >
-              <Calculator className="w-4 h-4" />
-              <span>Calculators</span>
-            </Link>
-
-            <Link
-              to="/list-property"
-              className={`flex items-center space-x-1.5 px-3 py-2 rounded text-xs font-label-caps uppercase transition-colors ${
-                isActive('/list-property')
-                  ? 'bg-primary-container text-warm-brass'
-                  : 'text-soft-ivory/80 hover:text-soft-ivory hover:bg-primary-container/50'
-              }`}
-            >
-              <PlusCircle className="w-4 h-4 text-warm-brass" />
-              <span>List Property</span>
-            </Link>
-
-            <Link
-              to="/dashboard"
-              className={`flex items-center space-x-1.5 px-3 py-2 rounded text-xs font-label-caps uppercase transition-colors ${
-                isActive('/dashboard')
-                  ? 'bg-primary-container text-warm-brass'
-                  : 'text-soft-ivory/80 hover:text-soft-ivory hover:bg-primary-container/50'
-              }`}
-            >
-              <LayoutDashboard className="w-4 h-4" />
-              <span>Dashboard</span>
-            </Link>
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-1 lg:space-x-3">
+            {navLinks.map((link) => {
+              const Icon = link.icon;
+              return (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className={`flex items-center space-x-1.5 px-3 py-2 rounded text-xs font-label-caps uppercase transition-colors ${
+                    isActive(link.to)
+                      ? 'bg-primary-container text-warm-brass'
+                      : 'text-soft-ivory/80 hover:text-soft-ivory hover:bg-primary-container/50'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 ${link.accent ? 'text-warm-brass' : ''}`} />
+                  <span>{link.label}</span>
+                </Link>
+              );
+            })}
 
             {currentUser ? (
               <div className="flex items-center space-x-2 ml-2 pl-2 border-l border-primary-container">
                 <Link to="/dashboard" className="flex items-center space-x-1.5 text-xs text-soft-ivory font-semibold hover:text-warm-brass">
                   <User className="w-4 h-4 text-warm-brass" />
-                  <span className="hidden sm:inline max-w-[100px] truncate">
+                  <span className="max-w-[100px] truncate">
                     {currentUser.first_name || currentUser.username}
                   </span>
                 </Link>
@@ -136,8 +108,68 @@ export const Navbar = () => {
               </Button>
             )}
           </div>
+
+          {/* Mobile Hamburger */}
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="md:hidden p-2 rounded hover:bg-primary-container/50 text-soft-ivory transition-colors cursor-pointer"
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
       </div>
+
+      {/* Mobile Slide-In Drawer */}
+      {mobileOpen && (
+        <div className="md:hidden absolute top-16 left-0 right-0 bg-ink-navy border-b border-primary-container shadow-xl z-50 animate-slide-down">
+          <div className="px-4 py-4 space-y-1">
+            {navLinks.map((link) => {
+              const Icon = link.icon;
+              return (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-label-caps uppercase transition-colors ${
+                    isActive(link.to)
+                      ? 'bg-primary-container text-warm-brass'
+                      : 'text-soft-ivory/80 hover:text-soft-ivory hover:bg-primary-container/40'
+                  }`}
+                >
+                  <Icon className={`w-5 h-5 ${link.accent ? 'text-warm-brass' : ''}`} />
+                  <span>{link.label}</span>
+                </Link>
+              );
+            })}
+
+            <div className="border-t border-primary-container pt-3 mt-3">
+              {currentUser ? (
+                <div className="space-y-2">
+                  <Link to="/dashboard" className="flex items-center space-x-3 px-4 py-3 text-sm text-soft-ivory font-semibold hover:text-warm-brass">
+                    <User className="w-5 h-5 text-warm-brass" />
+                    <span>{currentUser.first_name || currentUser.username}</span>
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center space-x-3 w-full px-4 py-3 rounded-lg text-sm text-soft-ivory hover:bg-alert-coral/20 hover:text-alert-coral transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  to="/login"
+                  className="flex items-center space-x-3 px-4 py-3 rounded-lg bg-warm-brass text-ink-navy text-sm font-label-caps uppercase font-bold"
+                >
+                  <LogIn className="w-5 h-5" />
+                  <span>Sign In / Register</span>
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
   );
 };

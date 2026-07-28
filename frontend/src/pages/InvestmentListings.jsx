@@ -12,6 +12,7 @@ export const InvestmentListings = () => {
   const [investorName, setInvestorName] = useState('');
   const [investorEmail, setInvestorEmail] = useState('');
   const [investorPhone, setInvestorPhone] = useState('');
+  const [investorMessage, setInvestorMessage] = useState('');
   const [inquirySuccess, setInquirySuccess] = useState(false);
 
   useEffect(() => {
@@ -33,7 +34,7 @@ export const InvestmentListings = () => {
       name: investorName,
       email: investorEmail,
       phone: investorPhone,
-      message: `Investor inquiry for ${selectedInv?.property?.title || 'Investment Property'}`,
+      message: investorMessage || `Investor inquiry for ${selectedInv?.property?.title || 'Investment Property'}`,
     })
       .then(() => setInquirySuccess(true))
       .catch(() => setInquirySuccess(true));
@@ -226,6 +227,16 @@ export const InvestmentListings = () => {
                   value={investorPhone}
                   onChange={(e) => setInvestorPhone(e.target.value)}
                 />
+                <div>
+                  <label className="block text-xs font-label-caps uppercase text-ink-navy mb-1.5">Message (Optional)</label>
+                  <textarea
+                    placeholder="Tell us about your investment goals, preferred timeline, or questions about this property..."
+                    value={investorMessage}
+                    onChange={(e) => setInvestorMessage(e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 rounded bg-surface-container-lowest border border-outline/40 text-ink-navy text-sm focus:outline-none focus:border-warm-brass resize-none"
+                  />
+                </div>
                 <Button type="submit" variant="primary" className="w-full">
                   <Send className="w-3.5 h-3.5 mr-2" />
                   Submit Investment Inquiry

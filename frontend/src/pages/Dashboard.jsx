@@ -93,15 +93,27 @@ export const Dashboard = () => {
           <div>
             <div className="flex items-center space-x-2">
               <h1 className="font-display-lg text-2xl font-semibold text-ink-navy">
-                {user?.username || 'Authenticated Lighter'}
+                {[user?.first_name, user?.last_name].filter(Boolean).join(' ') || user?.username || 'User'}
               </h1>
               <span className="px-2.5 py-0.5 rounded bg-warm-brass/20 text-ink-navy text-[10px] font-label-caps uppercase font-bold border border-warm-brass/40">
                 {user?.role || 'User'}
               </span>
             </div>
-            <p className="font-body-md text-xs text-slate-grey mt-0.5">
-              Phone: {user?.phone_number || '+91 98765 43210'} • {user?.is_phone_verified ? 'Verified Account' : 'Unverified'}
-            </p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+              {user?.phone_number && (
+                <span className="font-body-md text-xs text-slate-grey">
+                  📱 {user.phone_number}
+                </span>
+              )}
+              {user?.email && (
+                <span className="font-body-md text-xs text-slate-grey">
+                  ✉️ {user.email}
+                </span>
+              )}
+              <span className="font-body-md text-xs text-slate-grey">
+                {user?.is_phone_verified ? '✅ Verified Account' : '⚠️ Unverified'}
+              </span>
+            </div>
           </div>
         </div>
 

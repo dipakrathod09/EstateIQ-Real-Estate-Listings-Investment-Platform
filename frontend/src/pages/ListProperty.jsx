@@ -3,10 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPropertyListing } from '../api/listings';
 import { Button, Input } from '../components/ui';
+import { useToast } from '../components/Toast';
 import { PlusCircle, Building2, Layers, ShieldCheck, Image as ImageIcon, ArrowRight, CheckCircle } from 'lucide-react';
 
 export const ListProperty = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -84,7 +86,9 @@ export const ListProperty = () => {
         sessionStorage.removeItem('estateiq_property_draft');
         if (res.duplicate_flagged) {
           setFlaggedNotice('Your listing was submitted! Notice: A similar property exists in this locality, so it has been flagged for admin review.');
+          toast({ type: 'info', title: 'Duplicate Flagged', message: 'Similar listing detected — sent to admin review.' });
         } else {
+          toast({ type: 'success', title: 'Listing Created', message: 'Your property has been submitted successfully!' });
           navigate('/dashboard');
         }
       })
@@ -92,6 +96,7 @@ export const ListProperty = () => {
       .catch((err) => {
         setLoading(false);
         setError('Failed to submit listing. Please ensure you are logged in as Owner/Agent.');
+        toast({ type: 'error', title: 'Submission Failed', message: 'Please ensure you are logged in as Owner/Agent.' });
       });
   };
 

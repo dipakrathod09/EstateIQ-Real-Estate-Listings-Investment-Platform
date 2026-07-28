@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { requestOTP, verifyOTP } from '../api/listings';
 import { Button, Input } from '../components/ui';
+import { useToast } from '../components/Toast';
 import { ShieldCheck, ArrowRight, CheckCircle2, RefreshCw, UserCheck } from 'lucide-react';
 
 export const Login = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [step, setStep] = useState(1); // 1: Phone & Role, 2: OTP, 3: Profile Setup
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
@@ -49,11 +51,13 @@ export const Login = () => {
       .then(() => {
         setStep(2);
         setLoading(false);
+        toast({ type: 'success', title: 'OTP Sent', message: `Verification code sent to ${cleanedPhone}` });
       })
       .catch(() => {
         // Fallback for offline / dev mode
         setStep(2);
         setLoading(false);
+        toast({ type: 'info', title: 'Dev Mode', message: 'OTP sent (use 123456 for testing)' });
       });
   };
 
