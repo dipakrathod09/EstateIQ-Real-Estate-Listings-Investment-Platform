@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { fetchListings, logEvent } from '../api/listings';
 import { PropertyCard, Button, Input } from '../components/ui';
 import { SkeletonGrid } from '../components/Skeleton';
+import { ALL_CITIES, getLocalitiesForCity } from '../data/cityLocalities';
 import { Search as SearchIcon, Building2, SlidersHorizontal, RefreshCw } from 'lucide-react';
 
 const FALLBACK_LISTINGS = [
@@ -264,25 +265,30 @@ export const Search = () => {
               <label className="block text-xs font-label-caps uppercase text-ink-navy mb-1.5">City</label>
               <select
                 value={city}
-                onChange={(e) => { setCity(e.target.value); setCurrentPage(1); }}
+                onChange={(e) => { setCity(e.target.value); setLocality(''); setCurrentPage(1); }}
                 className="w-full px-3 py-2 rounded bg-surface-container-lowest border border-outline/40 text-ink-navy text-sm focus:outline-none focus:border-warm-brass cursor-pointer"
               >
                 <option value="">All Cities</option>
-                <option value="Ahmedabad">Ahmedabad</option>
-                <option value="Mumbai">Mumbai</option>
-                <option value="Delhi NCR">Delhi NCR</option>
-                <option value="Bengaluru">Bengaluru</option>
-                <option value="Pune">Pune</option>
+                {ALL_CITIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
               </select>
             </div>
 
-            {/* Locality Input */}
-            <Input
-              label="Locality / Area"
-              placeholder="e.g. Bodakdev, Satellite"
-              value={locality}
-              onChange={(e) => { setLocality(e.target.value); setCurrentPage(1); }}
-            />
+            {/* Locality Dropdown — synced to city */}
+            <div>
+              <label className="block text-xs font-label-caps uppercase text-ink-navy mb-1.5">Locality / Area</label>
+              <select
+                value={locality}
+                onChange={(e) => { setLocality(e.target.value); setCurrentPage(1); }}
+                className="w-full px-3 py-2 rounded bg-surface-container-lowest border border-outline/40 text-ink-navy text-sm focus:outline-none focus:border-warm-brass cursor-pointer"
+              >
+                <option value="">All Areas</option>
+                {getLocalitiesForCity(city).map((loc) => (
+                  <option key={loc} value={loc}>{loc}</option>
+                ))}
+              </select>
+            </div>
 
             {/* Property Type */}
             <div>

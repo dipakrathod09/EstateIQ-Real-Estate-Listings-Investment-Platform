@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { createPropertyListing } from '../api/listings';
 import { Button, Input } from '../components/ui';
 import { useToast } from '../components/Toast';
+import { ALL_CITIES, getLocalitiesForCity } from '../data/cityLocalities';
 import { PlusCircle, Building2, Layers, ShieldCheck, Image as ImageIcon, ArrowRight, CheckCircle } from 'lucide-react';
 
 export const ListProperty = () => {
@@ -156,25 +157,32 @@ export const ListProperty = () => {
                   <select
                     name="city"
                     value={formData.city}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 rounded bg-surface-container-lowest border border-outline/40 text-ink-navy text-sm focus:outline-none focus:border-warm-brass"
+                    onChange={(e) => {
+                      setFormData((prev) => ({ ...prev, city: e.target.value, locality: '' }));
+                    }}
+                    className="w-full px-3 py-2 rounded bg-surface-container-lowest border border-outline/40 text-ink-navy text-sm focus:outline-none focus:border-warm-brass cursor-pointer"
                   >
-                    <option value="Ahmedabad">Ahmedabad</option>
-                    <option value="Mumbai">Mumbai</option>
-                    <option value="Delhi NCR">Delhi NCR</option>
-                    <option value="Bengaluru">Bengaluru</option>
-                    <option value="Pune">Pune</option>
+                    {ALL_CITIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
                   </select>
                 </div>
 
-                <Input
-                  label="Locality / Neighborhood"
-                  name="locality"
-                  placeholder="e.g. Satellite, Prahlad Nagar"
-                  required
-                  value={formData.locality}
-                  onChange={handleChange}
-                />
+                <div>
+                  <label className="block text-xs font-label-caps uppercase text-ink-navy mb-1.5">Locality / Neighborhood</label>
+                  <select
+                    name="locality"
+                    value={formData.locality}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-3 py-2 rounded bg-surface-container-lowest border border-outline/40 text-ink-navy text-sm focus:outline-none focus:border-warm-brass cursor-pointer"
+                  >
+                    <option value="">Select Area</option>
+                    {getLocalitiesForCity(formData.city).map((loc) => (
+                      <option key={loc} value={loc}>{loc}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
