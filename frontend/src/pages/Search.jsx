@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { fetchListings } from '../api/listings';
+import { fetchListings, logEvent } from '../api/listings';
 import { PropertyCard, Button, Input } from '../components/ui';
 import { Search as SearchIcon, Building2, SlidersHorizontal, RefreshCw } from 'lucide-react';
 
@@ -110,12 +110,12 @@ const FALLBACK_LISTINGS = [
 ];
 
 export const Search = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [allListings, setAllListings] = useState([]);
   const [filteredListings, setFilteredListings] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Filter States
+  // Filter & Pagination States (All hooks at top level)
   const [city, setCity] = useState(searchParams.get('city') || '');
   const [locality, setLocality] = useState(searchParams.get('locality') || '');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
@@ -124,7 +124,11 @@ export const Search = () => {
   const [minPrice, setMinPrice] = useState(searchParams.get('min_price') || '');
   const [maxPrice, setMaxPrice] = useState(searchParams.get('max_price') || '');
   const [isVerified, setIsVerified] = useState(searchParams.get('is_verified') === 'true');
+  const [currentPage, setCurrentPage] = useState(1);
 
+  const itemsPerPage = 6;
+
+  // Data Fetching Effect
   useEffect(() => {
     setLoading(true);
     fetchListings()
@@ -140,6 +144,8 @@ export const Search = () => {
         setAllListings(FALLBACK_LISTINGS);
         setLoading(false);
       });
+    
+    logEvent('search_view', { city, locality }).catch(() => {});
   }, []);
 
   // Filter Computation Effect
@@ -179,13 +185,12 @@ export const Search = () => {
       result = result.filter(item => item.property?.price <= parseFloat(maxPrice));
     }
 
+    if (isVerified) {
+      result = result.filter(item => item.property?.is_verified || item.property?.rera_number);
+    }
+
     setFilteredListings(result);
   }, [allListings, city, locality, searchQuery, propertyType, bhk, minPrice, maxPrice, isVerified]);
-
-  // Pagination state
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
 
   const totalPages = Math.ceil(filteredListings.length / itemsPerPage) || 1;
   const paginatedItems = filteredListings.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -195,6 +200,23 @@ export const Search = () => {
       setCurrentPage(newPage);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  };
+
+  const handleSearchSubmit = (e) => {
+    if (e) e.preventDefault();
+    logEvent('search_submit', { searchQuery, city, locality }).catch(() => {});
+  };
+
+  const resetFilters = () => {
+    setCity('');
+    setLocality('');
+    setSearchQuery('');
+    setPropertyType('');
+    setBhk('');
+    setMinPrice('');
+    setMaxPrice('');
+    setIsVerified(false);
+    setCurrentPage(1);
   };
 
   return (
@@ -412,4 +434,3 @@ export const Search = () => {
     </div>
   );
 };
-
