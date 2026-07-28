@@ -1,11 +1,43 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Building2, Search, PlusCircle, Calculator, TrendingUp, LayoutDashboard, LogIn } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Building2, Search, PlusCircle, Calculator, TrendingUp, LayoutDashboard, LogIn, LogOut, User } from 'lucide-react';
 import { Button } from './ui/Button';
 
 export const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState(null);
+
   const isActive = (path) => location.pathname === path;
+
+  const loadUser = () => {
+    const stored = localStorage.getItem('user');
+    if (stored) {
+      try { setCurrentUser(JSON.parse(stored)); } catch (e) { setCurrentUser(null); }
+    } else {
+      setCurrentUser(null);
+    }
+  };
+
+  useEffect(() => {
+    loadUser();
+
+    // Listen for custom auth events
+    window.addEventListener('auth_change', loadUser);
+    window.addEventListener('storage', loadUser);
+    return () => {
+      window.removeEventListener('auth_change', loadUser);
+      window.removeEventListener('storage', loadUser);
+    };
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setCurrentUser(null);
+    window.dispatchEvent(new Event('auth_change'));
+    navigate('/');
+  };
 
   return (
     <nav className="sticky top-0 z-50 bg-ink-navy text-soft-ivory border-b border-primary-container shadow-md">
@@ -81,10 +113,28 @@ export const Navbar = () => {
               <span>Dashboard</span>
             </Link>
 
-            <Button to="/login" variant="secondary" size="sm" className="ml-2">
-              <LogIn className="w-3.5 h-3.5 mr-1" />
-              Sign In
-            </Button>
+            {currentUser ? (
+              <div className="flex items-center space-x-2 ml-2 pl-2 border-l border-primary-container">
+                <Link to="/dashboard" className="flex items-center space-x-1.5 text-xs text-soft-ivory font-semibold hover:text-warm-brass">
+                  <User className="w-4 h-4 text-warm-brass" />
+                  <span className="hidden sm:inline max-w-[100px] truncate">
+                    {currentUser.first_name || currentUser.username}
+                  </span>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  title="Sign Out"
+                  className="p-1.5 rounded hover:bg-alert-coral/20 text-soft-ivory hover:text-alert-coral transition-colors cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <Button to="/login" variant="secondary" size="sm" className="ml-2">
+                <LogIn className="w-3.5 h-3.5 mr-1" />
+                Sign In
+              </Button>
+            )}
           </div>
         </div>
       </div>

@@ -1,20 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { requestOTP, verifyOTP } from '../api/listings';
 import { Button, Input } from '../components/ui';
-import { ShieldCheck, ArrowRight } from 'lucide-react';
+import { ShieldCheck, ArrowRight, CheckCircle2, RefreshCw, UserCheck } from 'lucide-react';
 
 export const Login = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1); // 1: Phone, 2: OTP
+  const [step, setStep] = useState(1); // 1: Phone & Role, 2: OTP, 3: Profile Setup
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [role, setRole] = useState('buyer');
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // 30s Countdown timer for OTP Resend
+  const [countdown, setCountdown] = useState(30);
+  const [canResend, setCanResend] = useState(false);
+
+  useEffect(() => {
+    let timer;
+    if (step === 2 && countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+    } else if (countdown === 0) {
+      setCanResend(true);
+    }
+    return () => clearInterval(timer);
+  }, [step, countdown]);
+
   const handleSendOTP = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setError(null);
     const cleanedPhone = phoneNumber.trim();
 
@@ -24,6 +42,9 @@ export const Login = () => {
     }
 
     setLoading(true);
+    setCountdown(30);
+    setCanResend(false);
+
     requestOTP(cleanedPhone)
       .then(() => {
         setStep(2);
@@ -51,21 +72,30 @@ export const Login = () => {
       return;
     }
 
+    setStep(3); // Proceed to Profile Completion
+  };
+
+  const handleCompleteRegistration = (e) => {
+    e.preventDefault();
     setLoading(true);
 
     const devUser = {
       id: 1,
       username: `user_${phoneNumber.slice(-6) || '987654'}`,
-      email: `${phoneNumber.slice(-6) || 'user'}@estateiq.com`,
+      first_name: fullName.split(' ')[0] || 'User',
+      last_name: fullName.split(' ').slice(1).join(' ') || '',
+      email: email || `${phoneNumber.slice(-6) || 'user'}@estateiq.com`,
       role: role,
       phone_number: phoneNumber,
       is_phone_verified: true,
     };
 
-    verifyOTP(phoneNumber, cleanedOtp, role)
+    verifyOTP(phoneNumber, otp, role)
       .then((data) => {
+        const userObj = data.user || devUser;
         localStorage.setItem('token', data.access || 'mock_jwt_access_token_estateiq_2026');
-        localStorage.setItem('user', JSON.stringify(data.user || devUser));
+        localStorage.setItem('user', JSON.stringify(userObj));
+        window.dispatchEvent(new Event('auth_change'));
         setLoading(false);
         navigate('/dashboard');
       })
@@ -73,6 +103,7 @@ export const Login = () => {
         // Fallback for offline / dev mode
         localStorage.setItem('token', 'mock_jwt_access_token_estateiq_2026');
         localStorage.setItem('user', JSON.stringify(devUser));
+        window.dispatchEvent(new Event('auth_change'));
         setLoading(false);
         navigate('/dashboard');
       });
@@ -85,8 +116,14 @@ export const Login = () => {
           <div className="inline-flex p-3 rounded bg-primary-container text-warm-brass mx-auto">
             <ShieldCheck className="w-6 h-6" />
           </div>
-          <h2 className="font-display-lg text-2xl font-semibold text-ink-navy">Sign In to EstateIQ</h2>
-          <p className="font-body-md text-xs text-slate-grey">Secure Phone OTP Authentication</p>
+          <h2 className="font-display-lg text-2xl font-semibold text-ink-navy">
+            {step === 3 ? 'Complete Profile Setup' : 'Sign In / Register to EstateIQ'}
+          </h2>
+          <p className="font-body-md text-xs text-slate-grey">
+            {step === 1 && 'Step 1 of 3: Mobile Verification & Account Role'}
+            {step === 2 && 'Step 2 of 3: Enter 6-Digit Verification Code'}
+            {step === 3 && 'Step 3 of 3: Profile & Account Details'}
+          </p>
         </div>
 
         {error && (
@@ -96,13 +133,14 @@ export const Login = () => {
         )}
 
         <div className="p-3 rounded bg-signal-teal/10 text-signal-teal-text border border-signal-teal/30 text-xs font-data-stats text-center">
-          Test OTP Code: <span className="font-bold text-ink-navy">123456</span>
+          Test OTP Verification Code: <span className="font-bold text-ink-navy">123456</span>
         </div>
 
-        {step === 1 ? (
+        {/* Step 1: Mobile & Role Selector */}
+        {step === 1 && (
           <form onSubmit={handleSendOTP} className="space-y-4">
             <div>
-              <label className="block text-xs font-label-caps uppercase text-ink-navy mb-1.5">Select Your Role</label>
+              <label className="block text-xs font-label-caps uppercase text-ink-navy mb-1.5">Select Account Role</label>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { id: 'buyer', label: 'Buyer / Investor' },
@@ -127,7 +165,7 @@ export const Login = () => {
             </div>
 
             <Input
-              label="Mobile Number"
+              label="10-Digit Mobile Number"
               type="tel"
               placeholder="9876543210"
               required
@@ -140,10 +178,13 @@ export const Login = () => {
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </form>
-        ) : (
+        )}
+
+        {/* Step 2: Enter OTP with Resend Countdown */}
+        {step === 2 && (
           <form onSubmit={handleVerifyOTP} className="space-y-4">
             <Input
-              label="Enter 6-Digit OTP Code"
+              label="Enter 6-Digit Verification OTP"
               type="text"
               placeholder="123456"
               required
@@ -151,17 +192,61 @@ export const Login = () => {
               onChange={(e) => setOtp(e.target.value)}
             />
 
-            <Button type="submit" variant="primary" className="w-full" disabled={loading}>
-              {loading ? 'Verifying...' : 'Verify OTP & Continue'}
+            <Button type="submit" variant="primary" className="w-full">
+              Verify OTP & Continue
             </Button>
 
-            <button
-              type="button"
-              onClick={() => setStep(1)}
-              className="w-full text-xs font-label-caps text-slate-grey hover:text-ink-navy text-center cursor-pointer"
-            >
-              Change Mobile Number
-            </button>
+            <div className="flex items-center justify-between text-xs pt-2">
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="text-slate-grey hover:text-ink-navy cursor-pointer"
+              >
+                Change Number
+              </button>
+
+              {canResend ? (
+                <button
+                  type="button"
+                  onClick={handleSendOTP}
+                  className="text-warm-brass hover:underline flex items-center cursor-pointer font-bold"
+                >
+                  <RefreshCw className="w-3 h-3 mr-1" /> Resend OTP
+                </button>
+              ) : (
+                <span className="text-slate-grey font-data-stats">
+                  Resend in <span className="font-bold text-ink-navy">{countdown}s</span>
+                </span>
+              )}
+            </div>
+          </form>
+        )}
+
+        {/* Step 3: Profile Completion & Registration */}
+        {step === 3 && (
+          <form onSubmit={handleCompleteRegistration} className="space-y-4">
+            <Input
+              label="Full Name"
+              type="text"
+              placeholder="e.g. Dipak Rathod"
+              required
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
+
+            <Input
+              label="Email Address"
+              type="email"
+              placeholder="name@example.com"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+
+            <Button type="submit" variant="primary" className="w-full" disabled={loading}>
+              <UserCheck className="w-4 h-4 mr-2" />
+              {loading ? 'Completing Registration...' : 'Complete & Launch Dashboard'}
+            </Button>
           </form>
         )}
       </div>
