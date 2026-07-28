@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { fetchListingDetail, submitInquiry } from '../api/listings';
+import { fetchListingDetail, submitInquiry, logEvent } from '../api/listings';
 import { Button, Badge, StatBlock, Input } from '../components/ui';
-import { MapPin, Bed, Maximize2, Layers, Compass, Calendar, CheckCircle2, UserCheck, Send } from 'lucide-react';
+import { MapPin, Bed, Maximize2, Layers, Compass, Calendar, CheckCircle2, UserCheck, Send, Calculator } from 'lucide-react';
 
 const FALLBACK_PROPERTIES = {
   '1': {
@@ -75,12 +75,17 @@ export const PropertyDetails = () => {
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Form state
+  // Inquiry Form state
   const [inquiryName, setInquiryName] = useState('');
   const [inquiryEmail, setInquiryEmail] = useState('');
   const [inquiryPhone, setInquiryPhone] = useState('');
   const [inquiryMsg, setInquiryMsg] = useState('I am interested in this property. Please contact me with details.');
   const [submitStatus, setSubmitStatus] = useState(null);
+
+  // EMI Widget state
+  const [downPaymentPercent, setDownPaymentPercent] = useState('20');
+  const [interestRate, setInterestRate] = useState('8.5');
+  const [tenureYears, setTenureYears] = useState('20');
 
   useEffect(() => {
     fetchListingDetail(id)
@@ -92,7 +97,42 @@ export const PropertyDetails = () => {
         setListing(null);
         setLoading(false);
       });
+    
+    // Telemetry event logging
+    logEvent('view_property', { property_id: id }).catch(() => {});
   }, [id]);
+
+  const prop = listing?.property || FALLBACK_PROPERTIES[id] || FALLBACK_PROPERTIES['1'];
+
+  // SEO Document Title & Meta Tag Injection
+  useEffect(() => {
+    if (prop) {
+      document.title = `${prop.title} in ${prop.locality}, ${prop.city} | EstateIQ Real Estate`;
+      
+      let metaDesc = document.querySelector('meta[name="description"]');
+      if (!metaDesc) {
+        metaDesc = document.createElement('meta');
+        metaDesc.name = 'description';
+        document.head.appendChild(metaDesc);
+      }
+      metaDesc.content = `${prop.bhk} BHK ${prop.property_type || 'Property'} for sale in ${prop.locality}, ${prop.city}. Area: ${prop.area_sqft} sq ft. Price: ₹${prop.price}. RERA Verified.`;
+    }
+  }, [prop]);
+
+  // Embedded EMI Calculator Math
+  const computeEmi = () => {
+    const pPrice = parseFloat(prop.price) || 0;
+    const dpP = parseFloat(downPaymentPercent) || 20;
+    const loanAmt = pPrice * (1 - dpP / 100);
+    const r = ((parseFloat(interestRate) || 8.5) / 12) / 100;
+    const n = (parseInt(tenureYears) || 20) * 12;
+
+    if (loanAmt <= 0 || r <= 0 || n <= 0) return { emi: 0, loanAmt: 0 };
+    const emi = (loanAmt * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+    return { emi: Math.round(emi), loanAmt: Math.round(loanAmt) };
+  };
+
+  const { emi, loanAmt } = computeEmi();
 
   const handleInquirySubmit = (e) => {
     e.preventDefault();
@@ -105,19 +145,22 @@ export const PropertyDetails = () => {
     })
       .then(() => {
         setSubmitStatus('Inquiry submitted successfully! An agent will contact you shortly.');
+        logEvent('inquiry_submitted', { property_id: id, name: inquiryName }).catch(() => {});
       })
       .catch(() => {
         setSubmitStatus('Inquiry submitted successfully! An agent will contact you shortly.');
       });
   };
 
-  const prop = listing?.property || FALLBACK_PROPERTIES[id] || FALLBACK_PROPERTIES['1'];
-
   const formattedPrice = new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
     maximumFractionDigits: 0,
   }).format(prop.price);
+
+  const formatCurrency = (val) => {
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
+  };
 
   return (
     <div className="min-h-screen bg-background text-on-background py-8 px-4 sm:px-6 lg:px-8 max-w-max-width mx-auto space-y-8">
@@ -205,6 +248,54 @@ export const PropertyDetails = () => {
                 {prop.has_security && <div className="flex items-center space-x-2"><CheckCircle2 className="w-4 h-4 text-signal-teal" /><span>24/7 Security</span></div>}
                 {prop.has_parking && <div className="flex items-center space-x-2"><CheckCircle2 className="w-4 h-4 text-signal-teal" /><span>Reserved Parking</span></div>}
                 {prop.has_power_backup && <div className="flex items-center space-x-2"><CheckCircle2 className="w-4 h-4 text-signal-teal" /><span>Power Backup</span></div>}
+              </div>
+            </div>
+
+            {/* Embedded EMI Calculator Widget */}
+            <div className="space-y-4 pt-6 border-t border-surface-container bg-surface-container-lowest p-5 rounded-lg border border-surface-variant">
+              <div className="flex items-center space-x-2 text-ink-navy font-semibold text-sm">
+                <Calculator className="w-4 h-4 text-warm-brass" />
+                <span>Home Loan EMI Calculator Widget</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-label-caps uppercase text-ink-navy mb-1">Down Payment (%)</label>
+                  <input
+                    type="number"
+                    value={downPaymentPercent}
+                    onChange={(e) => setDownPaymentPercent(e.target.value)}
+                    className="w-full px-3 py-1.5 rounded border border-outline/30 text-xs focus:outline-none focus:border-warm-brass"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-label-caps uppercase text-ink-navy mb-1">Interest Rate (%)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={interestRate}
+                    onChange={(e) => setInterestRate(e.target.value)}
+                    className="w-full px-3 py-1.5 rounded border border-outline/30 text-xs focus:outline-none focus:border-warm-brass"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-label-caps uppercase text-ink-navy mb-1">Tenure (Years)</label>
+                  <input
+                    type="number"
+                    value={tenureYears}
+                    onChange={(e) => setTenureYears(e.target.value)}
+                    className="w-full px-3 py-1.5 rounded border border-outline/30 text-xs focus:outline-none focus:border-warm-brass"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-surface-container">
+                <div>
+                  <span className="text-xs text-slate-grey block">Est. Loan Amount</span>
+                  <span className="font-data-stats font-semibold text-ink-navy text-sm">{formatCurrency(loanAmt)}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs text-slate-grey block font-label-caps uppercase">Estimated Monthly EMI</span>
+                  <span className="font-data-price font-bold text-warm-brass text-lg">{formatCurrency(emi)}/mo</span>
+                </div>
               </div>
             </div>
           </div>

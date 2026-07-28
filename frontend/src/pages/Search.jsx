@@ -179,26 +179,22 @@ export const Search = () => {
       result = result.filter(item => item.property?.price <= parseFloat(maxPrice));
     }
 
-    if (isVerified) {
-      result = result.filter(item => item.property?.is_verified || item.property?.rera_number);
-    }
-
     setFilteredListings(result);
   }, [allListings, city, locality, searchQuery, propertyType, bhk, minPrice, maxPrice, isVerified]);
 
-  const handleSearchSubmit = (e) => {
-    if (e) e.preventDefault();
-  };
+  // Pagination state
 
-  const resetFilters = () => {
-    setCity('');
-    setLocality('');
-    setSearchQuery('');
-    setPropertyType('');
-    setBhk('');
-    setMinPrice('');
-    setMaxPrice('');
-    setIsVerified(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
+
+  const totalPages = Math.ceil(filteredListings.length / itemsPerPage) || 1;
+  const paginatedItems = filteredListings.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   return (
@@ -220,7 +216,7 @@ export const Search = () => {
             type="text"
             placeholder="Search by title, locality, or keyword..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
             className="w-full pl-9 pr-4 py-2 rounded bg-white border border-outline/40 text-ink-navy text-xs focus:outline-none focus:border-warm-brass shadow-sm"
           />
         </div>
@@ -245,7 +241,7 @@ export const Search = () => {
               <label className="block text-xs font-label-caps uppercase text-ink-navy mb-1.5">City</label>
               <select
                 value={city}
-                onChange={(e) => setCity(e.target.value)}
+                onChange={(e) => { setCity(e.target.value); setCurrentPage(1); }}
                 className="w-full px-3 py-2 rounded bg-surface-container-lowest border border-outline/40 text-ink-navy text-sm focus:outline-none focus:border-warm-brass cursor-pointer"
               >
                 <option value="">All Cities</option>
@@ -262,7 +258,7 @@ export const Search = () => {
               label="Locality / Area"
               placeholder="e.g. Bodakdev, Satellite"
               value={locality}
-              onChange={(e) => setLocality(e.target.value)}
+              onChange={(e) => { setLocality(e.target.value); setCurrentPage(1); }}
             />
 
             {/* Property Type */}
@@ -270,7 +266,7 @@ export const Search = () => {
               <label className="block text-xs font-label-caps uppercase text-ink-navy mb-1.5">Property Type</label>
               <select
                 value={propertyType}
-                onChange={(e) => setPropertyType(e.target.value)}
+                onChange={(e) => { setPropertyType(e.target.value); setCurrentPage(1); }}
                 className="w-full px-3 py-2 rounded bg-surface-container-lowest border border-outline/40 text-ink-navy text-sm focus:outline-none focus:border-warm-brass cursor-pointer"
               >
                 <option value="">All Types</option>
@@ -290,7 +286,7 @@ export const Search = () => {
                   <button
                     key={b}
                     type="button"
-                    onClick={() => setBhk(bhk === b ? '' : b)}
+                    onClick={() => { setBhk(bhk === b ? '' : b); setCurrentPage(1); }}
                     className={`py-1.5 rounded text-xs font-label-caps border transition-colors cursor-pointer ${
                       bhk === b
                         ? 'bg-ink-navy text-soft-ivory border-ink-navy'
@@ -310,14 +306,14 @@ export const Search = () => {
                 type="number"
                 placeholder="5000000"
                 value={minPrice}
-                onChange={(e) => setMinPrice(e.target.value)}
+                onChange={(e) => { setMinPrice(e.target.value); setCurrentPage(1); }}
               />
               <Input
                 label="Max Price (INR)"
                 type="number"
                 placeholder="20000000"
                 value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
+                onChange={(e) => { setMaxPrice(e.target.value); setCurrentPage(1); }}
               />
             </div>
 
@@ -327,7 +323,7 @@ export const Search = () => {
                 type="checkbox"
                 id="rera-toggle"
                 checked={isVerified}
-                onChange={(e) => setIsVerified(e.target.checked)}
+                onChange={(e) => { setIsVerified(e.target.checked); setCurrentPage(1); }}
                 className="rounded border-slate-grey text-signal-teal focus:ring-signal-teal h-4 w-4 cursor-pointer"
               />
               <label htmlFor="rera-toggle" className="text-xs font-body-md text-ink-navy cursor-pointer">
@@ -341,21 +337,63 @@ export const Search = () => {
           </form>
         </div>
 
-        {/* Listings Grid */}
+        {/* Listings Grid & Pagination */}
         <div className="lg:col-span-3 space-y-6">
           <div className="flex items-center justify-between bg-white p-4 rounded-lg border border-surface-variant">
             <span className="text-xs font-label-caps uppercase text-slate-grey">
-              Showing {filteredListings.length} Property Listings
+              Showing {paginatedItems.length} of {filteredListings.length} Property Listings
+            </span>
+            <span className="text-xs font-data-stats text-ink-navy">
+              Page {currentPage} of {totalPages}
             </span>
           </div>
 
           {loading ? (
             <div className="text-center py-12 text-slate-grey">Searching listings...</div>
           ) : filteredListings.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredListings.map((item) => (
-                <PropertyCard key={item.id} property={item.property} />
-              ))}
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {paginatedItems.map((item) => (
+                  <PropertyCard key={item.id} property={item.property} />
+                ))}
+              </div>
+
+              {/* Pagination Controls UI */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center space-x-2 bg-white p-4 rounded-lg border border-surface-variant">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={currentPage === 1}
+                    onClick={() => handlePageChange(currentPage - 1)}
+                  >
+                    Previous
+                  </Button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => handlePageChange(p)}
+                      className={`w-8 h-8 rounded text-xs font-label-caps cursor-pointer transition-colors ${
+                        currentPage === p
+                          ? 'bg-ink-navy text-soft-ivory font-bold'
+                          : 'bg-surface-container text-ink-navy hover:bg-surface-container-high'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={currentPage === totalPages}
+                    onClick={() => handlePageChange(currentPage + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="bg-white p-12 rounded-lg text-center border border-surface-variant space-y-3">
@@ -374,3 +412,4 @@ export const Search = () => {
     </div>
   );
 };
+

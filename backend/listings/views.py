@@ -164,6 +164,93 @@ def create_listing(request):
     }, status=status.HTTP_201_CREATED)
 
 
+@api_view(['PATCH', 'PUT'])
+@permission_classes([IsAuthenticated])
+def update_listing(request, pk):
+    """
+    Updates property listing details. Restricted to listing owner or admin.
+    """
+    try:
+        listing = Listing.objects.select_related('property').get(pk=pk)
+        if listing.user != request.user and request.user.role != 'admin' and not request.user.is_staff:
+            return Response({"error": "You do not have permission to edit this listing"}, status=status.HTTP_403_FORBIDDEN)
+
+        prop = listing.property
+        data = request.data
+
+        if 'title' in data: prop.title = data['title']
+        if 'description' in data: prop.description = data['description']
+        if 'price' in data: prop.price = Decimal(str(data['price']))
+        if 'locality' in data: prop.locality = data['locality']
+        if 'bhk' in data: prop.bhk = int(data['bhk'])
+        if 'area_sqft' in data: prop.area_sqft = float(data['area_sqft'])
+        if 'rera_number' in data: prop.rera_number = data['rera_number']
+        prop.save()
+
+        if 'listing_type' in data:
+            listing.listing_type = data['listing_type']
+            listing.save()
+
+        return Response(ListingSerializer(listing).data)
+    except Listing.DoesNotExist:
+        return Response({"error": "Listing not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def submit_for_review(request, pk):
+    """
+    Transitions listing status from draft to pending_review.
+    """
+    try:
+        listing = Listing.objects.get(pk=pk)
+        if listing.user != request.user and request.user.role != 'admin' and not request.user.is_staff:
+            return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+
+        if listing.status != Listing.Status.DRAFT:
+            return Response({"error": f"Listing is currently '{listing.status}', cannot submit for review"}, status=status.HTTP_400_BAD_REQUEST)
+
+        listing.status = Listing.Status.PENDING_REVIEW
+        listing.save()
+        return Response({"message": "Listing submitted for review", "listing": ListingSerializer(listing).data})
+    except Listing.DoesNotExist:
+        return Response({"error": "Listing not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def upload_property_image(request, pk):
+    """
+    Standalone multipart image upload endpoint with file size (<5MB) and image type validation.
+    """
+    try:
+        listing = Listing.objects.get(pk=pk)
+        if listing.user != request.user and request.user.role != 'admin' and not request.user.is_staff:
+            return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+
+        file_obj = request.FILES.get('image')
+        if not file_obj:
+            return Response({"error": "No image file provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 5MB size limit check
+        if file_obj.size > 5 * 1024 * 1024:
+            return Response({"error": "Image size exceeds 5MB limit"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Image content-type check
+        if not file_obj.content_type.startswith('image/'):
+            return Response({"error": "Uploaded file must be a valid image (JPEG, PNG, WebP)"}, status=status.HTTP_400_BAD_REQUEST)
+
+        prop_img = PropertyImage.objects.create(
+            property=listing.property,
+            image=file_obj,
+            is_primary=(listing.property.images.count() == 0)
+        )
+        return Response({"message": "Image uploaded successfully", "image_id": prop_img.id}, status=status.HTTP_201_CREATED)
+    except Listing.DoesNotExist:
+        return Response({"error": "Listing not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
 def moderate_listing(request, pk):

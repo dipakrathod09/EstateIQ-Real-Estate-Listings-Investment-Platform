@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
 import { useNavigate } from 'react-router-dom';
 import { createPropertyListing } from '../api/listings';
 import { Button, Input } from '../components/ui';
@@ -37,6 +38,23 @@ export const ListProperty = () => {
     image_url: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80',
   });
 
+  // Load draft state from sessionStorage on mount
+  useEffect(() => {
+    const savedDraft = sessionStorage.getItem('estateiq_property_draft');
+    if (savedDraft) {
+      try {
+        const parsed = JSON.parse(savedDraft);
+        if (parsed.formData) setFormData(parsed.formData);
+        if (parsed.step) setStep(parsed.step);
+      } catch (err) {}
+    }
+  }, []);
+
+  // Persist draft state to sessionStorage whenever step or formData changes
+  useEffect(() => {
+    sessionStorage.setItem('estateiq_property_draft', JSON.stringify({ formData, step }));
+  }, [formData, step]);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -44,6 +62,7 @@ export const ListProperty = () => {
       [name]: type === 'checkbox' ? checked : value,
     }));
   };
+
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -62,12 +81,14 @@ export const ListProperty = () => {
     })
       .then((res) => {
         setLoading(false);
+        sessionStorage.removeItem('estateiq_property_draft');
         if (res.duplicate_flagged) {
           setFlaggedNotice('Your listing was submitted! Notice: A similar property exists in this locality, so it has been flagged for admin review.');
         } else {
           navigate('/dashboard');
         }
       })
+
       .catch((err) => {
         setLoading(false);
         setError('Failed to submit listing. Please ensure you are logged in as Owner/Agent.');

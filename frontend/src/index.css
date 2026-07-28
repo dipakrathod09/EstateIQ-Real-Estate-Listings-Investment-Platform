@@ -11,11 +11,11 @@
 }
 
 /* Custom Folded Corner Effect for Property Card */
-.folded-corner {
+.folded-corner, .eq-folded-corner {
   position: relative;
 }
 
-.folded-corner::after {
+.folded-corner::after, .eq-folded-corner::after {
   content: '';
   position: absolute;
   top: 0;
@@ -27,3 +27,4 @@
   border-color: transparent #B98B4E transparent transparent;
   pointer-events: none;
 }
+

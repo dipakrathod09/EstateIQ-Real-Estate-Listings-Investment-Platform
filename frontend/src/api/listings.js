@@ -35,6 +35,11 @@ export const submitInquiry = async (inquiryData) => {
   return response.data;
 };
 
+export const fetchInquiries = async () => {
+  const response = await client.get('/api/inquiries/');
+  return response.data;
+};
+
 export const scheduleSiteVisit = async (visitData) => {
   const response = await client.post('/api/site-visits/', visitData);
   return response.data;
@@ -47,6 +52,11 @@ export const fetchFavorites = async () => {
 
 export const toggleFavorite = async (property_id) => {
   const response = await client.post('/api/favorites/', { property_id });
+  return response.data;
+};
+
+export const fetchSavedSearches = async () => {
+  const response = await client.get('/api/saved-searches/');
   return response.data;
 };
 
@@ -67,5 +77,10 @@ export const calculateLoanEligibility = async (data) => {
 
 export const fetchInvestments = async () => {
   const response = await client.get('/api/investments/');
+  return response.data;
+};
+
+export const logEvent = async (event_type, payload = {}) => {
+  const response = await client.post('/api/events/log/', { event_type, payload });
   return response.data;
 };
