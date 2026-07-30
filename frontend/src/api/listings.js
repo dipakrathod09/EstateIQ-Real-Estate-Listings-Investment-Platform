@@ -84,3 +84,29 @@ export const logEvent = async (event_type, payload = {}) => {
   const response = await client.post('/api/events/log/', { event_type, payload });
   return response.data;
 };
+
+export const fetchSimilarListings = async (id) => {
+  const response = await client.get(`/api/listings/${id}/similar/`);
+  return response.data;
+};
+
+export const fetchMLValuation = async (id) => {
+  const response = await client.get(`/api/listings/${id}/valuation/`);
+  return response.data;
+};
+
+export const fetchReviews = async (target_type = 'property', target_id = null) => {
+  const response = await client.get('/api/reviews/', { params: { target_type, target_id } });
+  return response.data;
+};
+
+export const submitReview = async (reviewData) => {
+  const response = await client.post('/api/reviews/', reviewData);
+  return response.data;
+};
+
+export const fetchLocalityHeatmap = async () => {
+  const response = await client.get('/api/localities/heatmap/');
+  return response.data;
+};
+

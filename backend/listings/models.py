@@ -175,11 +175,40 @@ class InvestmentListing(models.Model):
     projected_rental_yield = models.FloatField(help_text="Projected Rental Yield %")
     min_investment_amount = models.DecimalField(max_digits=12, decimal_places=2)
     lock_in_period_months = models.IntegerField(default=12)
+    is_pre_launch = models.BooleanField(default=False)
+    early_access_ends_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Investment Details for {self.property.title}"
+
+
+class Review(models.Model):
+    class TargetType(models.TextChoices):
+        PROPERTY = 'property', 'Property'
+        BUILDER = 'builder', 'Builder'
+        AGENT = 'agent', 'Agent'
+        LOCALITY = 'locality', 'Locality'
+
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Pending Review'
+        APPROVED = 'approved', 'Approved'
+        REJECTED = 'rejected', 'Rejected'
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reviews')
+    target_type = models.CharField(max_length=20, choices=TargetType.choices, default=TargetType.PROPERTY)
+    target_id = models.IntegerField(db_index=True)
+    rating = models.IntegerField(default=5)
+    comment = models.TextField()
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.APPROVED)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Review ({self.rating}/5) by {self.user.username} on {self.target_type} #{self.target_id}"
 
 
 class Event(models.Model):
@@ -190,4 +219,5 @@ class Event(models.Model):
 
     def __str__(self):
         return f"Event '{self.event_type}' at {self.created_at}"
+
 

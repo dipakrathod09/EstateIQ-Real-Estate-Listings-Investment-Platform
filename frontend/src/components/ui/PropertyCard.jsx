@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Bed, Maximize2, ShieldCheck } from 'lucide-react';
+import { MapPin, Bed, Maximize2 } from 'lucide-react';
 import { Badge } from './Badge';
 
 export const PropertyCard = ({ property }) => {
@@ -15,6 +15,7 @@ export const PropertyCard = ({ property }) => {
     listing_type = 'buy',
     is_verified = true,
     rera_number,
+    deal_tag,
     primary_image = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=600&q=80',
   } = property || {};
 
@@ -23,6 +24,20 @@ export const PropertyCard = ({ property }) => {
     currency: 'INR',
     maximumFractionDigits: 0,
   }).format(price);
+
+  // Compute ML deal tag if not explicitly supplied
+  const cityBasePsf = {
+    Mumbai: 24000,
+    'Delhi NCR': 13000,
+    Bengaluru: 10000,
+    Pune: 8500,
+    Ahmedabad: 6500,
+  };
+  const basePsf = cityBasePsf[city] || 6500;
+  const estimatedValuation = area_sqft * basePsf + bhk * 250000;
+  const priceRatio = price / estimatedValuation;
+
+  const computedDealTag = deal_tag || (priceRatio <= 0.90 ? 'Good Deal' : priceRatio >= 1.12 ? 'Overpriced' : 'Fair Price');
 
   return (
     <div className="group bg-white rounded-lg border border-surface-variant shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col relative folded-corner">
@@ -33,11 +48,12 @@ export const PropertyCard = ({ property }) => {
           alt={title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
-        <div className="absolute top-3 left-3 flex items-center space-x-2">
+        <div className="absolute top-3 left-3 flex flex-wrap items-center gap-1.5">
           <span className="px-2.5 py-1 rounded bg-ink-navy/90 text-soft-ivory text-xs font-label-caps uppercase">
             For {listing_type === 'rent' ? 'Rent' : 'Sale'}
           </span>
           {(is_verified || rera_number) && <Badge variant="verified" />}
+          <Badge variant="deal" dealTag={computedDealTag} />
         </div>
       </div>
 

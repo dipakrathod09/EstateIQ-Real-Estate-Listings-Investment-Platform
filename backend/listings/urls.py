@@ -4,7 +4,8 @@ from listings.views import (
     upload_property_image, moderate_listing, handle_inquiries, handle_site_visits,
     handle_favorites, remove_favorite, handle_saved_searches, emi_calculator,
     stamp_duty_calculator, loan_eligibility_calculator, list_investments,
-    create_razorpay_order, razorpay_webhook, log_event
+    create_razorpay_order, razorpay_webhook, log_event, get_similar_listings,
+    get_ml_valuation, handle_reviews, locality_heatmap
 )
 
 urlpatterns = [
@@ -15,6 +16,9 @@ urlpatterns = [
     path('properties/', create_listing, name='properties-create'),
     path('listings/<int:pk>/', get_listing_detail, name='listings-detail'),
     path('properties/<int:pk>/', get_listing_detail, name='properties-detail'),
+    path('listings/<int:pk>/similar/', get_similar_listings, name='listings-similar'),
+    path('properties/<int:pk>/similar/', get_similar_listings, name='properties-similar'),
+    path('listings/<int:pk>/valuation/', get_ml_valuation, name='listings-valuation'),
 
     # Listing management & workflow transitions
     path('listings/<int:pk>/update/', update_listing, name='listings-update'),
@@ -29,11 +33,13 @@ urlpatterns = [
     path('favorites/', handle_favorites, name='favorites'),
     path('favorites/<int:property_id>/', remove_favorite, name='favorites-remove'),
     path('saved-searches/', handle_saved_searches, name='saved-searches'),
+    path('reviews/', handle_reviews, name='reviews'),
 
-    # Calculators
+    # Calculators & Intelligence
     path('calculators/emi/', emi_calculator, name='calc-emi'),
     path('calculators/stamp-duty/', stamp_duty_calculator, name='calc-stamp-duty'),
     path('calculators/loan-eligibility/', loan_eligibility_calculator, name='calc-loan-eligibility'),
+    path('localities/heatmap/', locality_heatmap, name='locality-heatmap'),
 
     # Investment & Payments
     path('investments/', list_investments, name='investments-list'),
@@ -41,3 +47,4 @@ urlpatterns = [
     path('payments/webhook/', razorpay_webhook, name='payments-webhook'),
     path('events/log/', log_event, name='events-log'),
 ]
+

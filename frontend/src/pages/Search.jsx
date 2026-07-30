@@ -3,8 +3,9 @@ import { useSearchParams } from 'react-router-dom';
 import { fetchListings, logEvent } from '../api/listings';
 import { PropertyCard, Button, Input } from '../components/ui';
 import { SkeletonGrid } from '../components/Skeleton';
+import { MapView } from '../components/MapView';
 import { ALL_CITIES, getLocalitiesForCity } from '../data/cityLocalities';
-import { Search as SearchIcon, Building2, SlidersHorizontal, RefreshCw } from 'lucide-react';
+import { Search as SearchIcon, Building2, SlidersHorizontal, RefreshCw, LayoutGrid, MapPin as MapIcon } from 'lucide-react';
 
 const FALLBACK_LISTINGS = [
   {
@@ -127,6 +128,7 @@ export const Search = () => {
   const [maxPrice, setMaxPrice] = useState(searchParams.get('max_price') || '');
   const [isVerified, setIsVerified] = useState(searchParams.get('is_verified') === 'true');
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState('grid');
 
   const itemsPerPage = 6;
 
@@ -366,19 +368,53 @@ export const Search = () => {
           </form>
         </div>
 
-        {/* Listings Grid & Pagination */}
+        {/* Listings Grid / Map & Pagination */}
         <div className="lg:col-span-3 space-y-6">
-          <div className="flex items-center justify-between bg-white p-4 rounded-lg border border-surface-variant">
-            <span className="text-xs font-label-caps uppercase text-slate-grey">
-              Showing {paginatedItems.length} of {filteredListings.length} Property Listings
-            </span>
-            <span className="text-xs font-data-stats text-ink-navy">
-              Page {currentPage} of {totalPages}
-            </span>
+          <div className="flex items-center justify-between bg-white p-4 rounded-lg border border-surface-variant shadow-sm">
+            <div>
+              <span className="text-xs font-label-caps uppercase text-slate-grey block">
+                Showing {paginatedItems.length} of {filteredListings.length} Property Listings
+              </span>
+              <span className="text-xs font-data-stats text-ink-navy">
+                Page {currentPage} of {totalPages}
+              </span>
+            </div>
+
+            {/* View Mode Toggle Switcher */}
+            <div className="flex items-center space-x-1 bg-surface-container p-1 rounded-lg border border-outline/30">
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`flex items-center space-x-1 px-3 py-1.5 rounded text-xs font-label-caps uppercase transition-colors cursor-pointer ${
+                  viewMode === 'grid'
+                    ? 'bg-ink-navy text-white shadow-sm'
+                    : 'text-slate-grey hover:text-ink-navy'
+                }`}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span>Grid</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('map')}
+                className={`flex items-center space-x-1 px-3 py-1.5 rounded text-xs font-label-caps uppercase transition-colors cursor-pointer ${
+                  viewMode === 'map'
+                    ? 'bg-ink-navy text-white shadow-sm'
+                    : 'text-slate-grey hover:text-ink-navy'
+                }`}
+              >
+                <MapIcon className="w-3.5 h-3.5" />
+                <span>Map GIS</span>
+              </button>
+            </div>
           </div>
 
           {loading ? (
             <SkeletonGrid count={6} />
+          ) : viewMode === 'map' ? (
+            <div className="bg-white p-4 rounded-lg border border-surface-variant shadow-sm">
+              <MapView properties={filteredListings} />
+            </div>
           ) : filteredListings.length > 0 ? (
             <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

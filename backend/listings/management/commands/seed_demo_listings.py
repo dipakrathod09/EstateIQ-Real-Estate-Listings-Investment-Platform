@@ -1,16 +1,45 @@
 import random
 from decimal import Decimal
+from datetime import timedelta
+from django.utils import timezone
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
-from listings.models import Property, PropertyImage, Listing, InvestmentListing
+from listings.models import Property, PropertyImage, Listing, InvestmentListing, Review
 
 User = get_user_model()
 
-LOCALITIES = [
-    'Bodakdev', 'Satellite', 'Prahlad Nagar', 'Thaltej', 'Vastrapur',
-    'SG Highway', 'Science City', 'Bopal', 'South Bopal', 'Vaishno Devi Circle',
-    'Shela', 'Ambli', 'GIFT City', 'Navrangpura', 'CG Road'
-]
+CITY_DATA = {
+    'Ahmedabad': {
+        'lat_range': (22.95, 23.10),
+        'lng_range': (72.50, 72.65),
+        'psf_range': (5200, 9500),
+        'localities': ['Bodakdev', 'Satellite', 'Prahlad Nagar', 'Thaltej', 'Vastrapur', 'SG Highway', 'GIFT City', 'Bopal']
+    },
+    'Mumbai': {
+        'lat_range': (18.95, 19.25),
+        'lng_range': (72.80, 72.95),
+        'psf_range': (22000, 48000),
+        'localities': ['Bandra West', 'Andheri West', 'Juhu', 'Powai', 'Worli', 'Lower Parel', 'Thane West', 'Vashi']
+    },
+    'Delhi NCR': {
+        'lat_range': (28.40, 28.70),
+        'lng_range': (77.00, 77.35),
+        'psf_range': (9500, 24000),
+        'localities': ['DLF Phase 5', 'Golf Course Road', 'Gurgaon Sector 49', 'Dwarka', 'Noida Sector 150', 'Vasant Kunj']
+    },
+    'Bengaluru': {
+        'lat_range': (12.85, 13.05),
+        'lng_range': (77.55, 77.75),
+        'psf_range': (8500, 16500),
+        'localities': ['Whitefield', 'Sarjapur Road', 'Electronic City', 'Koramangala', 'HSR Layout', 'Indiranagar']
+    },
+    'Pune': {
+        'lat_range': (18.45, 18.65),
+        'lng_range': (73.75, 73.95),
+        'psf_range': (7500, 14000),
+        'localities': ['Baner', 'Hinjewadi', 'Kharadi', 'Wakad', 'Aundh', 'Koregaon Park', 'Viman Nagar']
+    }
+}
 
 PROPERTY_TYPES = [
     (Property.PropertyType.APARTMENT, 0.65),
@@ -28,12 +57,11 @@ IMAGES = [
 ]
 
 class Command(BaseCommand):
-    help = 'Seeds 50 realistic Ahmedabad real estate properties & listings'
+    help = 'Seeds 75 realistic real estate properties & listings across 5 major Indian cities'
 
     def handle(self, *args, **kwargs):
-        self.stdout.write("Seeding Ahmedabad real estate demo listings...")
+        self.stdout.write("Seeding 5-city real estate demo listings...")
 
-        # Ensure demo owner user exists
         demo_user, _ = User.objects.get_or_create(
             username='demo_agent',
             defaults={
@@ -45,70 +73,100 @@ class Command(BaseCommand):
         )
 
         created_count = 0
-        for i in range(1, 51):
-            locality = random.choice(LOCALITIES)
-            bhk = random.choice([2, 3, 4, 5])
-            area = bhk * random.randint(450, 600)
-            
-            # Base price per sqft in Ahmedabad prime localities (₹4,500 to ₹9,500 / sqft)
-            price_per_sqft = random.randint(4800, 9200)
-            price = Decimal(str(int(area * price_per_sqft)))
+        for city, info in CITY_DATA.items():
+            for i in range(1, 16): # 15 listings per city = 75 listings total
+                locality = random.choice(info['localities'])
+                bhk = random.choice([2, 3, 4, 5])
+                area = bhk * random.randint(450, 600)
+                
+                psf = random.randint(info['psf_range'][0], info['psf_range'][1])
+                price = Decimal(str(int(area * psf)))
 
-            rera_num = f"PR/GJ/AHMEDABAD/{random.randint(10000, 99999)}/2026"
-            prop_type = random.choices([p[0] for p in PROPERTY_TYPES], [p[1] for p in PROPERTY_TYPES])[0]
+                lat = round(random.uniform(info['lat_range'][0], info['lat_range'][1]), 6)
+                lng = round(random.uniform(info['lng_range'][0], info['lng_range'][1]), 6)
 
-            prop = Property.objects.create(
-                title=f"{bhk} BHK Premium {prop_type} in {locality}",
-                description=f"Spacious and elegant {bhk} BHK {prop_type} located in prime {locality}, Ahmedabad. Close to SG Highway, top international schools, and metro station. Features 24/7 security, covered parking, and club amenities.",
-                city='Ahmedabad',
-                sub_market='Ahmedabad West' if locality in ['Bodakdev', 'Satellite', 'Thaltej', 'Vastrapur'] else 'Ahmedabad Outer',
-                locality=locality,
-                property_type=prop_type,
-                bhk=bhk,
-                area_sqft=area,
-                floor=random.randint(1, 14),
-                total_floors=15,
-                age_years=random.randint(0, 5),
-                furnishing=random.choice([Property.Furnishing.UNFURNISHED, Property.Furnishing.SEMI_FURNISHED, Property.Furnishing.FULLY_FURNISHED]),
-                facing=random.choice([Property.Facing.EAST, Property.Facing.NORTH_EAST, Property.Facing.NORTH]),
-                price=price,
-                rera_number=rera_num,
-                has_gym=random.choice([True, False]),
-                has_pool=random.choice([True, False]),
-                has_security=True,
-                has_power_backup=True,
-                has_parking=True,
-                has_lift=True,
-            )
+                rera_state = "GJ" if city == "Ahmedabad" else ("MH" if city in ["Mumbai", "Pune"] else "DL")
+                rera_num = f"PR/{rera_state}/{city.upper().replace(' ', '_')}/{random.randint(10000, 99999)}/2026"
+                prop_type = random.choices([p[0] for p in PROPERTY_TYPES], [p[1] for p in PROPERTY_TYPES])[0]
 
-            # Create primary image
-            PropertyImage.objects.create(
-                property=prop,
-                image_url=random.choice(IMAGES),
-                order=0,
-                is_primary=True
-            )
-
-            # Create Listing
-            Listing.objects.create(
-                property=prop,
-                user=demo_user,
-                listing_type=random.choice([Listing.ListingType.BUY, Listing.ListingType.RENT]),
-                status=Listing.Status.LIVE,
-                is_verified=True
-            )
-
-            # Create Investment details for select properties
-            if i % 5 == 0:
-                InvestmentListing.objects.create(
-                    property=prop,
-                    expected_roi_percentage=round(random.uniform(9.5, 14.5), 1),
-                    projected_rental_yield=round(random.uniform(6.2, 8.8), 1),
-                    min_investment_amount=Decimal('2500000.00'),
-                    lock_in_period_months=12,
-                    is_active=True
+                prop = Property.objects.create(
+                    title=f"{bhk} BHK Premium {prop_type} in {locality}",
+                    description=f"Luxury {bhk} BHK {prop_type} situated in prime {locality}, {city}. Features state-of-the-art architecture, 24/7 security, club amenities, and excellent connectivity to major transit hubs.",
+                    city=city,
+                    sub_market=f"{city} Central",
+                    locality=locality,
+                    property_type=prop_type,
+                    bhk=bhk,
+                    area_sqft=area,
+                    floor=random.randint(1, 18),
+                    total_floors=20,
+                    age_years=random.randint(0, 4),
+                    furnishing=random.choice([Property.Furnishing.UNFURNISHED, Property.Furnishing.SEMI_FURNISHED, Property.Furnishing.FULLY_FURNISHED]),
+                    facing=random.choice([Property.Facing.EAST, Property.Facing.NORTH_EAST, Property.Facing.NORTH]),
+                    price=price,
+                    rera_number=rera_num,
+                    latitude=lat,
+                    longitude=lng,
+                    dist_metro_km=round(random.uniform(0.5, 4.0), 1),
+                    dist_school_km=round(random.uniform(0.3, 2.5), 1),
+                    dist_hospital_km=round(random.uniform(0.5, 3.0), 1),
+                    dist_it_hub_km=round(random.uniform(1.0, 6.0), 1),
+                    has_gym=random.choice([True, False]),
+                    has_pool=random.choice([True, False]),
+                    has_clubhouse=True,
+                    has_security=True,
+                    has_power_backup=True,
+                    has_parking=True,
+                    has_lift=True,
                 )
 
-            created_count += 1
+                # Primary & gallery images
+                PropertyImage.objects.create(
+                    property=prop,
+                    image_url=random.choice(IMAGES),
+                    order=0,
+                    is_primary=True
+                )
+                PropertyImage.objects.create(
+                    property=prop,
+                    image_url=random.choice(IMAGES),
+                    order=1,
+                    is_primary=False
+                )
 
-        self.stdout.write(self.style.SUCCESS(f"Successfully seeded {created_count} realistic Ahmedabad listings!"))
+                # Listing
+                listing_obj = Listing.objects.create(
+                    property=prop,
+                    user=demo_user,
+                    listing_type=random.choice([Listing.ListingType.BUY, Listing.ListingType.RENT]),
+                    status=Listing.Status.LIVE,
+                    is_verified=True
+                )
+
+                # Investment Listing (1 out of every 3)
+                if (created_count % 3) == 0:
+                    is_pre = (created_count % 6) == 0
+                    InvestmentListing.objects.create(
+                        property=prop,
+                        expected_roi_percentage=round(random.uniform(9.0, 15.5), 1),
+                        projected_rental_yield=round(random.uniform(6.0, 8.9), 1),
+                        min_investment_amount=Decimal('2500000.00'),
+                        lock_in_period_months=12,
+                        is_pre_launch=is_pre,
+                        early_access_ends_at=timezone.now() + timedelta(days=14) if is_pre else None,
+                        is_active=True
+                    )
+
+                # Seed sample review
+                Review.objects.create(
+                    user=demo_user,
+                    target_type=Review.TargetType.PROPERTY,
+                    target_id=prop.id,
+                    rating=random.choice([4, 5]),
+                    comment=f"Excellent property structure and prime location in {locality}, {city}. Great investment value!",
+                    status=Review.Status.APPROVED
+                )
+
+                created_count += 1
+
+        self.stdout.write(self.style.SUCCESS(f"Successfully seeded {created_count} listings across all 5 launch cities!"))

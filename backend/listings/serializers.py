@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from listings.models import (
-    Property, PropertyImage, Listing, Inquiry, SiteVisit, Favorite, SavedSearch, InvestmentListing
+    Property, PropertyImage, Listing, Inquiry, SiteVisit, Favorite, SavedSearch, InvestmentListing, Review
 )
 from users.serializers import UserSerializer
 
@@ -95,7 +95,16 @@ class InvestmentListingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = InvestmentListing
-        fields = ('id', 'property', 'expected_roi_percentage', 'projected_rental_yield', 'min_investment_amount', 'lock_in_period_months', 'is_active', 'created_at')
+        fields = ('id', 'property', 'expected_roi_percentage', 'projected_rental_yield', 'min_investment_amount', 'lock_in_period_months', 'is_pre_launch', 'early_access_ends_at', 'is_active', 'created_at')
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source='user.get_full_name', read_only=True)
+
+    class Meta:
+        model = Review
+        fields = ('id', 'user', 'user_name', 'target_type', 'target_id', 'rating', 'comment', 'status', 'created_at')
+        read_only_fields = ('id', 'user', 'user_name', 'status', 'created_at')
 
 # Calculator Serializers
 class EMICalculatorSerializer(serializers.Serializer):

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { fetchInvestments, submitInquiry } from '../api/listings';
 import { PropertyCard, Button, StatBlock, Input } from '../components/ui';
-import { TrendingUp, Percent, Lock, Building2, Send, CheckCircle2 } from 'lucide-react';
+import { LocalityHeatmap } from '../components/LocalityHeatmap';
+import { TrendingUp, Percent, Lock, Building2, Send, CheckCircle2, Flame, Clock } from 'lucide-react';
 
 export const InvestmentListings = () => {
   const [investments, setInvestments] = useState([]);
@@ -79,6 +80,9 @@ export const InvestmentListings = () => {
         </div>
       </div>
 
+      {/* Locality Appreciation & Yield Heatmap Visualizer */}
+      <LocalityHeatmap />
+
       {/* Featured Investment Showcase Cards */}
       <div className="space-y-6">
         <h2 className="font-display-lg text-2xl font-semibold text-ink-navy">Curated High-Yield Assets</h2>
@@ -88,7 +92,13 @@ export const InvestmentListings = () => {
         ) : investments.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {investments.map((inv) => (
-              <div key={inv.id} className="bg-white rounded-lg border border-surface-variant p-4 space-y-4 shadow-sm flex flex-col justify-between">
+              <div key={inv.id} className="bg-white rounded-lg border border-surface-variant p-4 space-y-4 shadow-sm flex flex-col justify-between relative overflow-hidden">
+                {inv.is_pre_launch && (
+                  <div className="bg-warm-brass text-white text-xs font-label-caps uppercase px-3 py-1 font-semibold flex items-center justify-between rounded-t-md -mx-4 -mt-4 mb-2">
+                    <span className="flex items-center"><Flame className="w-3.5 h-3.5 mr-1" /> Pre-Launch Opportunity</span>
+                    <span className="flex items-center text-[10px] font-mono"><Clock className="w-3 h-3 mr-0.5" /> Early Access</span>
+                  </div>
+                )}
                 <PropertyCard property={inv.property} />
                 <div className="grid grid-cols-2 gap-2 pt-2 border-t border-surface-container">
                   <StatBlock label="Expected ROI" value={`${inv.expected_roi_percentage}%`} />
