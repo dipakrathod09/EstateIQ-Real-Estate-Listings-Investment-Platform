@@ -32,10 +32,10 @@ jobs:
           cd backend
           python manage.py check
 
-      - name: Run Pytest Suite
+      - name: Run Django Test Suite
         run: |
           cd backend
-          pytest
+          python manage.py test
 
   frontend-ci:
     name: Frontend CI (React + Vite)
@@ -47,7 +47,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: frontend/package.json
 
