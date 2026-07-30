@@ -110,3 +110,9 @@ export const fetchLocalityHeatmap = async () => {
   return response.data;
 };
 
+export const predictPropertyPrice = async (data) => {
+  const response = await client.post('/api/predict-price/', data);
+  return response.data;
+};
+
+

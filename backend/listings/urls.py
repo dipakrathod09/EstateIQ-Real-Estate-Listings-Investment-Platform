@@ -5,7 +5,7 @@ from listings.views import (
     handle_favorites, remove_favorite, handle_saved_searches, emi_calculator,
     stamp_duty_calculator, loan_eligibility_calculator, list_investments,
     create_razorpay_order, razorpay_webhook, log_event, get_similar_listings,
-    get_ml_valuation, handle_reviews, locality_heatmap
+    get_ml_valuation, handle_reviews, locality_heatmap, predict_custom_price
 )
 
 urlpatterns = [
@@ -19,6 +19,7 @@ urlpatterns = [
     path('listings/<int:pk>/similar/', get_similar_listings, name='listings-similar'),
     path('properties/<int:pk>/similar/', get_similar_listings, name='properties-similar'),
     path('listings/<int:pk>/valuation/', get_ml_valuation, name='listings-valuation'),
+    path('predict-price/', predict_custom_price, name='predict-custom-price'),
 
     # Listing management & workflow transitions
     path('listings/<int:pk>/update/', update_listing, name='listings-update'),
