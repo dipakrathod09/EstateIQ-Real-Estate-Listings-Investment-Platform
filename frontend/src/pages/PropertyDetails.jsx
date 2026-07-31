@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { fetchListingDetail, submitInquiry, logEvent } from '../api/listings';
+import { fetchListingDetail, submitInquiry, logEvent, toggleFavorite } from '../api/listings';
 import { Button, Badge, StatBlock, Input } from '../components/ui';
-import { MapPin, Bed, Maximize2, Layers, Compass, Calendar, CheckCircle2, UserCheck, Send, Calculator } from 'lucide-react';
+import { MapPin, Bed, Maximize2, Layers, Compass, Calendar, CheckCircle2, UserCheck, Send, Calculator, Heart } from 'lucide-react';
 
 const FALLBACK_PROPERTIES = {
   '1': {
@@ -81,9 +81,18 @@ export const PropertyDetails = () => {
   const [inquiryPhone, setInquiryPhone] = useState('');
   const [inquiryMsg, setInquiryMsg] = useState('I am interested in this property. Please contact me with details.');
   const [submitStatus, setSubmitStatus] = useState(null);
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [favLoading, setFavLoading] = useState(false);
 
-  // EMI Widget state
-  const [downPaymentPercent, setDownPaymentPercent] = useState('20');
+  const handleFavToggle = () => {
+    setFavLoading(true);
+    const newState = !isFavorited;
+    setIsFavorited(newState);
+
+    toggleFavorite(id)
+      .then(() => setFavLoading(false))
+      .catch(() => setFavLoading(false));
+  };
   const [interestRate, setInterestRate] = useState('8.5');
   const [tenureYears, setTenureYears] = useState('20');
 
@@ -204,9 +213,24 @@ export const PropertyDetails = () => {
                 </div>
               </div>
 
-              <div className="text-left sm:text-right">
-                <span className="text-xs text-slate-grey block font-label-caps uppercase">Listed Price</span>
-                <span className="text-2xl font-data-price font-bold text-ink-navy">{formattedPrice}</span>
+              <div className="flex items-center space-x-3 text-left sm:text-right">
+                <div>
+                  <span className="text-xs text-slate-grey block font-label-caps uppercase">Listed Price</span>
+                  <span className="text-2xl font-data-price font-bold text-ink-navy">{formattedPrice}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleFavToggle}
+                  disabled={favLoading}
+                  className={`p-2.5 rounded-full border transition-all cursor-pointer ${
+                    isFavorited
+                      ? 'bg-alert-coral/10 border-alert-coral text-alert-coral font-semibold'
+                      : 'bg-surface-container border-outline/30 text-slate-grey hover:text-alert-coral hover:border-alert-coral'
+                  }`}
+                  title={isFavorited ? 'Saved in Favorites' : 'Save to Favorites'}
+                >
+                  <Heart className={`w-5 h-5 ${isFavorited ? 'fill-alert-coral text-alert-coral' : ''}`} />
+                </button>
               </div>
             </div>
 

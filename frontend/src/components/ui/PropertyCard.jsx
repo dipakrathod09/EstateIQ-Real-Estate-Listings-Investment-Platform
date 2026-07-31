@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Bed, Maximize2 } from 'lucide-react';
+import { MapPin, Bed, Maximize2, Heart } from 'lucide-react';
 import { Badge } from './Badge';
+import { toggleFavorite } from '../../api/listings';
 
-export const PropertyCard = ({ property }) => {
+export const PropertyCard = ({ property, isFavoritedInitial = false, onToggleFavorite }) => {
   const {
     id = '1',
     title = '3 BHK Modern Apartment',
@@ -18,6 +19,29 @@ export const PropertyCard = ({ property }) => {
     deal_tag,
     primary_image = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=600&q=80',
   } = property || {};
+
+  const [isFavorited, setIsFavorited] = useState(isFavoritedInitial);
+  const [favLoading, setFavLoading] = useState(false);
+
+  const handleFavoriteClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setFavLoading(true);
+
+    const newFavState = !isFavorited;
+    setIsFavorited(newFavState);
+
+    toggleFavorite(id)
+      .then(() => {
+        setFavLoading(false);
+        if (onToggleFavorite) onToggleFavorite(id, newFavState);
+      })
+      .catch(() => {
+        // Fallback optimistic toggle
+        setFavLoading(false);
+        if (onToggleFavorite) onToggleFavorite(id, newFavState);
+      });
+  };
 
   const formattedPrice = new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -48,13 +72,28 @@ export const PropertyCard = ({ property }) => {
           alt={title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
-        <div className="absolute top-3 left-3 flex flex-wrap items-center gap-1.5">
+        <div className="absolute top-3 left-3 flex flex-wrap items-center gap-1.5 pr-12">
           <span className="px-2.5 py-1 rounded bg-ink-navy/90 text-soft-ivory text-xs font-label-caps uppercase">
             For {listing_type === 'rent' ? 'Rent' : 'Sale'}
           </span>
           {(is_verified || rera_number) && <Badge variant="verified" />}
           <Badge variant="deal" dealTag={computedDealTag} />
         </div>
+
+        {/* Heart Favorite Button */}
+        <button
+          type="button"
+          onClick={handleFavoriteClick}
+          disabled={favLoading}
+          aria-label="Save Favorite"
+          className="absolute top-3 right-3 p-2 rounded-full bg-white/90 hover:bg-white shadow-md text-ink-navy transition-all cursor-pointer hover:scale-110 z-10"
+        >
+          <Heart
+            className={`w-4 h-4 transition-colors ${
+              isFavorited ? 'fill-alert-coral text-alert-coral' : 'text-slate-grey hover:text-alert-coral'
+            }`}
+          />
+        </button>
       </div>
 
       {/* Property Details Content */}
