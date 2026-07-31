@@ -149,7 +149,7 @@ def create_listing(request):
         )
 
     has_rera = bool(data.get('rera_number', '').strip())
-    initial_status = Listing.Status.PENDING_REVIEW if not duplicate_exists else Listing.Status.DRAFT
+    initial_status = Listing.Status.LIVE if not duplicate_exists else Listing.Status.DRAFT
 
     listing_obj = Listing.objects.create(
         property=property_obj,
