@@ -95,19 +95,40 @@ export const ListProperty = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
-    createPropertyListing({
+    const priceNum = parseFloat(formData.price) || 0;
+    const areaNum = parseFloat(formData.area_sqft) || 0;
+
+    if (!formData.title.trim()) {
+      setError('Please enter a listing title.');
+      return;
+    }
+
+    if (!formData.locality.trim()) {
+      setError('Please select or enter a locality.');
+      return;
+    }
+
+    if (priceNum <= 0 || areaNum <= 0) {
+      setError('Please enter a valid property price and total area (sqft).');
+      return;
+    }
+
+    setLoading(true);
+
+    const payload = {
       ...formData,
-      price: parseFloat(formData.price),
-      bhk: parseInt(formData.bhk),
-      area_sqft: parseFloat(formData.area_sqft),
-      floor: parseInt(formData.floor),
-      total_floors: parseInt(formData.total_floors),
-      age_years: parseInt(formData.age_years),
+      price: priceNum,
+      bhk: parseInt(formData.bhk) || 2,
+      area_sqft: areaNum,
+      floor: parseInt(formData.floor) || 0,
+      total_floors: parseInt(formData.total_floors) || 1,
+      age_years: parseInt(formData.age_years) || 0,
       image_urls: formData.image_url ? [formData.image_url] : [],
-    })
+    };
+
+    createPropertyListing(payload)
       .then((res) => {
         setLoading(false);
         sessionStorage.removeItem('estateiq_property_draft');
@@ -115,15 +136,22 @@ export const ListProperty = () => {
           setFlaggedNotice('Your listing was submitted! Notice: A similar property exists in this locality, so it has been flagged for admin review.');
           toast({ type: 'info', title: 'Duplicate Flagged', message: 'Similar listing detected — sent to admin review.' });
         } else {
-          toast({ type: 'success', title: 'Listing Created', message: 'Your property has been submitted successfully!' });
+          toast({ type: 'success', title: 'Listing Created', message: 'Your property listing has been submitted successfully!' });
           navigate('/dashboard');
         }
       })
-
       .catch((err) => {
         setLoading(false);
-        setError('Failed to submit listing. Please ensure you are logged in as Owner/Agent.');
-        toast({ type: 'error', title: 'Submission Failed', message: 'Please ensure you are logged in as Owner/Agent.' });
+        const errData = err.response?.data;
+        let msg = 'Failed to submit listing. Please check required fields.';
+        if (typeof errData === 'object' && errData !== null) {
+          const fieldErrs = Object.entries(errData).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`);
+          if (fieldErrs.length > 0) msg = fieldErrs.join(' | ');
+        } else if (err.message) {
+          msg = err.message;
+        }
+        setError(msg);
+        toast({ type: 'error', title: 'Submission Issue', message: msg });
       });
   };
 
