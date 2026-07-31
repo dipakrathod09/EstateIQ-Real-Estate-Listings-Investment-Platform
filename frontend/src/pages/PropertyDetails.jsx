@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { fetchListingDetail, submitInquiry, logEvent, toggleFavorite, lookupRERAProject } from '../api/listings';
+import { fetchListingDetail, submitInquiry, logEvent, toggleFavorite } from '../api/listings';
 import { Button, Badge, StatBlock, Input } from '../components/ui';
-import { RERAVerificationModal } from '../components/RERAVerificationModal';
-import { MapPin, Bed, Maximize2, Layers, Compass, Calendar, CheckCircle2, UserCheck, Send, Calculator, Heart, ShieldCheck } from 'lucide-react';
+import { MapPin, Bed, Maximize2, Layers, Compass, Calendar, CheckCircle2, UserCheck, Send, Calculator, Heart, X } from 'lucide-react';
 
 const FALLBACK_PROPERTIES = {
   '1': {
@@ -82,20 +81,9 @@ export const PropertyDetails = () => {
   const [inquiryPhone, setInquiryPhone] = useState('');
   const [inquiryMsg, setInquiryMsg] = useState('I am interested in this property. Please contact me with details.');
   const [submitStatus, setSubmitStatus] = useState(null);
+  const [nudgeDismissed, setNudgeDismissed] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
-
-  const [isReraModalOpen, setIsReraModalOpen] = useState(false);
-  const [reraAuditData, setReraAuditData] = useState(null);
-
-  const handleOpenReraModal = () => {
-    setIsReraModalOpen(true);
-    if (prop?.rera_number || prop?.rera_details) {
-      lookupRERAProject(prop.rera_number || 'PR/GJ/AHMEDABAD/10293/2026')
-        .then((data) => setReraAuditData(data))
-        .catch(() => setReraAuditData(null));
-    }
-  };
 
   const handleFavToggle = () => {
     setFavLoading(true);
@@ -250,22 +238,12 @@ export const PropertyDetails = () => {
 
             {/* RERA Verification Container */}
             {prop.rera_number && (
-              <div className="p-3.5 rounded bg-signal-teal/10 border border-signal-teal/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-signal-teal-text">
-                <div className="flex items-center space-x-3">
-                  <Badge variant="verified" />
-                  <div>
-                    <span className="font-label-caps uppercase font-bold block">RERA Registered Property</span>
-                    <span className="font-data-stats font-mono">RERA No: {prop.rera_number}</span>
-                  </div>
+              <div className="p-3 rounded bg-signal-teal/10 border border-signal-teal/30 flex items-center space-x-3 text-xs text-signal-teal-text">
+                <Badge variant="verified" />
+                <div className="ml-2">
+                  <span className="font-label-caps uppercase font-bold block">Gujarat RERA Registered</span>
+                  <span className="font-data-stats">RERA No: {prop.rera_number}</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleOpenReraModal}
-                  className="px-3 py-1.5 rounded bg-signal-teal/20 hover:bg-signal-teal/30 text-signal-teal-text font-label-caps uppercase text-[11px] font-semibold flex items-center space-x-1 cursor-pointer transition-colors border border-signal-teal/40"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>View RERA Audit Report</span>
-                </button>
               </div>
             )}
 
@@ -363,8 +341,27 @@ export const PropertyDetails = () => {
             </div>
 
             {submitStatus ? (
-              <div className="p-4 rounded bg-signal-teal/10 text-signal-teal-text border border-signal-teal/30 text-xs font-body-md">
-                {submitStatus}
+              <div className="space-y-3">
+                <div className="p-4 rounded bg-signal-teal/10 text-signal-teal-text border border-signal-teal/30 text-xs font-body-md">
+                  {submitStatus}
+                </div>
+                
+                {!nudgeDismissed && !localStorage.getItem('token') && (
+                  <div className="p-3 rounded bg-warm-brass/10 border border-warm-brass/30 flex items-center justify-between text-xs text-ink-navy">
+                    <div>
+                      <span className="font-semibold block">Want updates on this inquiry?</span>
+                      <span className="text-slate-grey text-[11px]">Create an account in 10 seconds.</span>
+                    </div>
+                    <div className="flex items-center space-x-2 shrink-0">
+                      <Link to="/login" className="px-2.5 py-1 rounded bg-warm-brass text-white font-label-caps text-[11px] hover:bg-ink-navy transition-colors">
+                        Register
+                      </Link>
+                      <button onClick={() => setNudgeDismissed(true)} className="text-slate-grey hover:text-ink-navy p-1 cursor-pointer">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <form onSubmit={handleInquirySubmit} className="space-y-3">
@@ -410,13 +407,6 @@ export const PropertyDetails = () => {
           </div>
         </div>
       </div>
-
-      <RERAVerificationModal
-        isOpen={isReraModalOpen}
-        onClose={() => setIsReraModalOpen(false)}
-        reraData={reraAuditData || prop.rera_details}
-        reraNumber={prop.rera_number}
-      />
     </div>
   );
 };
