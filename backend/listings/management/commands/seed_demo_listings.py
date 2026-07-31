@@ -4,7 +4,7 @@ from datetime import timedelta
 from django.utils import timezone
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
-from listings.models import Property, PropertyImage, Listing, InvestmentListing, Review, RERAProject
+from listings.models import Property, PropertyImage, Listing, InvestmentListing, Review
 
 User = get_user_model()
 
@@ -62,25 +62,6 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         self.stdout.write("Seeding 5-city real estate demo listings...")
 
-        # Explicitly seed user-specified GujRERA record
-        RERAProject.objects.get_or_create(
-            rera_number='PR/GJ/AHMEDABAD/AHMEDABAD CITY/AUDA/RAA05186/EX1/171219',
-            defaults={
-                'state_authority': 'Gujarat RERA (GujRERA)',
-                'project_name': 'AUDA Skyline City Enclave (GujRERA Verified)',
-                'promoter_name': 'Ahmedabad Urban Development Authority & Apex Developers',
-                'registration_status': RERAProject.RegistrationStatus.APPROVED,
-                'compliance_score': 99,
-                'escrow_verified': True,
-                'escrow_bank_name': 'State Bank of India (GujRERA Escrow Account)',
-                'litigation_count': 0,
-                'approved_floors': 24,
-                'total_units': 192,
-                'official_portal_url': 'https://gujrera.gujarat.gov.in/projectSearch',
-                'document_url': 'https://gujrera.gujarat.gov.in/projectSearch'
-            }
-        )
-
         demo_user, _ = User.objects.get_or_create(
             username='demo_agent',
             defaults={
@@ -106,28 +87,6 @@ class Command(BaseCommand):
 
                 rera_state = "GJ" if city == "Ahmedabad" else ("MH" if city in ["Mumbai", "Pune"] else "DL")
                 rera_num = f"PR/{rera_state}/{city.upper().replace(' ', '_')}/{random.randint(10000, 99999)}/2026"
-                
-                authority_name = "Gujarat RERA (GujRERA)" if rera_state == "GJ" else ("Maharashtra RERA (MahaRERA)" if rera_state == "MH" else "Delhi/NCR RERA")
-                portal_url = "https://gujrera.gujarat.gov.in/projectSearch" if rera_state == "GJ" else ("https://maharerait.mahaonline.gov.in/SearchList/Search" if rera_state == "MH" else "https://haryanarera.gov.in")
-
-                RERAProject.objects.get_or_create(
-                    rera_number=rera_num,
-                    defaults={
-                        'state_authority': authority_name,
-                        'project_name': f"{locality} Skyline Enclave",
-                        'promoter_name': f"{city} Apex Infrastructure Developers Ltd",
-                        'registration_status': RERAProject.RegistrationStatus.APPROVED,
-                        'compliance_score': random.randint(92, 99),
-                        'escrow_verified': True,
-                        'escrow_bank_name': 'HDFC Bank RERA Escrow Account',
-                        'litigation_count': 0,
-                        'approved_floors': 22,
-                        'total_units': 160,
-                        'official_portal_url': portal_url,
-                        'document_url': portal_url
-                    }
-                )
-
                 prop_type = random.choices([p[0] for p in PROPERTY_TYPES], [p[1] for p in PROPERTY_TYPES])[0]
 
                 prop = Property.objects.create(

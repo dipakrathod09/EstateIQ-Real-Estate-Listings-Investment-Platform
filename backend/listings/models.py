@@ -217,32 +217,7 @@ class Event(models.Model):
     properties_payload = models.JSONField(default=dict)
     created_at = models.DateTimeField(auto_now_add=True)
 
-
-class RERAProject(models.Model):
-    class RegistrationStatus(models.TextChoices):
-        APPROVED = 'approved', 'Approved & Valid'
-        DELAYED = 'delayed', 'Timeline Delayed'
-        UNDER_REVIEW = 'under_review', 'Under Renewal / Review'
-        REVOKED = 'revoked', 'Revoked / Blacklisted'
-
-    rera_number = models.CharField(max_length=100, unique=True, db_index=True)
-    state_authority = models.CharField(max_length=100, default='Gujarat RERA (GujRERA)')
-    project_name = models.CharField(max_length=255)
-    promoter_name = models.CharField(max_length=255)
-    registration_status = models.CharField(max_length=30, choices=RegistrationStatus.choices, default=RegistrationStatus.APPROVED)
-    compliance_score = models.IntegerField(default=95, help_text="RERA Trust Index Score 0-100")
-    promised_completion_date = models.DateField(null=True, blank=True)
-    revised_completion_date = models.DateField(null=True, blank=True)
-    escrow_verified = models.BooleanField(default=True, help_text="70% Buyer Fund Escrow Account Verified")
-    escrow_bank_name = models.CharField(max_length=150, default='HDFC Bank Ltd (Escrow Branch)')
-    litigation_count = models.IntegerField(default=0, help_text="Active legal complaints count")
-    approved_floors = models.IntegerField(default=15)
-    total_units = models.IntegerField(default=120)
-    official_portal_url = models.URLField(max_length=500, blank=True, null=True)
-    document_url = models.URLField(max_length=500, blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
     def __str__(self):
-        return f"{self.project_name} ({self.rera_number}) - {self.compliance_score}/100"
+        return f"Event '{self.event_type}' at {self.created_at}"
 
 

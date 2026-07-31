@@ -1,13 +1,8 @@
 from rest_framework import serializers
 from listings.models import (
-    Property, PropertyImage, Listing, Inquiry, SiteVisit, Favorite, SavedSearch, InvestmentListing, Review, RERAProject
+    Property, PropertyImage, Listing, Inquiry, SiteVisit, Favorite, SavedSearch, InvestmentListing, Review
 )
 from users.serializers import UserSerializer
-
-class RERAProjectSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = RERAProject
-        fields = '__all__'
 
 class PropertyImageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -17,7 +12,7 @@ class PropertyImageSerializer(serializers.ModelSerializer):
 class PropertySerializer(serializers.ModelSerializer):
     images = PropertyImageSerializer(many=True, read_only=True)
     primary_image = serializers.SerializerMethodField()
-    rera_details = serializers.SerializerMethodField()
+
 
     class Meta:
         model = Property
@@ -31,14 +26,6 @@ class PropertySerializer(serializers.ModelSerializer):
             if primary.image:
                 return primary.image.url
         return "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80"
-
-    def get_rera_details(self, obj):
-        if not obj.rera_number:
-            return None
-        project = RERAProject.objects.filter(rera_number__iexact=obj.rera_number).first()
-        if project:
-            return RERAProjectSerializer(project).data
-        return None
 
 class ListingSerializer(serializers.ModelSerializer):
     property = PropertySerializer(read_only=True)
@@ -74,60 +61,64 @@ class CreatePropertyListingSerializer(serializers.Serializer):
     has_power_backup = serializers.BooleanField(default=False)
     has_parking = serializers.BooleanField(default=False)
     has_lift = serializers.BooleanField(default=False)
+    
+    # Optional image URLs array
     image_urls = serializers.ListField(child=serializers.URLField(), required=False)
 
 class InquirySerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-
     class Meta:
         model = Inquiry
-        fields = '__all__'
+        fields = ('id', 'listing', 'name', 'email', 'phone', 'message', 'status', 'created_at')
 
 class SiteVisitSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
+    listing_details = ListingSerializer(source='listing', read_only=True)
 
     class Meta:
         model = SiteVisit
-        fields = '__all__'
+        fields = ('id', 'listing', 'listing_details', 'preferred_date', 'preferred_time', 'status', 'created_at')
+        read_only_fields = ('id', 'status', 'created_at')
 
 class FavoriteSerializer(serializers.ModelSerializer):
     property = PropertySerializer(read_only=True)
 
     class Meta:
         model = Favorite
-        fields = '__all__'
+        fields = ('id', 'property', 'created_at')
 
 class SavedSearchSerializer(serializers.ModelSerializer):
     class Meta:
         model = SavedSearch
-        fields = '__all__'
+        fields = ('id', 'title', 'query_params', 'created_at')
 
 class InvestmentListingSerializer(serializers.ModelSerializer):
     property = PropertySerializer(read_only=True)
 
     class Meta:
         model = InvestmentListing
-        fields = '__all__'
+        fields = ('id', 'property', 'expected_roi_percentage', 'projected_rental_yield', 'min_investment_amount', 'lock_in_period_months', 'is_pre_launch', 'early_access_ends_at', 'is_active', 'created_at')
+
 
 class ReviewSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
+    user_name = serializers.CharField(source='user.get_full_name', read_only=True)
 
     class Meta:
         model = Review
-        fields = '__all__'
+        fields = ('id', 'user', 'user_name', 'target_type', 'target_id', 'rating', 'comment', 'status', 'created_at')
+        read_only_fields = ('id', 'user', 'user_name', 'status', 'created_at')
 
+# Calculator Serializers
 class EMICalculatorSerializer(serializers.Serializer):
-    loan_amount = serializers.FloatField()
-    interest_rate = serializers.FloatField()
-    tenure_years = serializers.IntegerField()
+    loan_amount = serializers.FloatField(min_value=10000)
+    interest_rate = serializers.FloatField(min_value=0.1, max_value=30.0)
+    tenure_years = serializers.IntegerField(min_value=1, max_value=30)
 
 class StampDutyCalculatorSerializer(serializers.Serializer):
-    state = serializers.CharField()
-    property_value = serializers.FloatField()
-    gender = serializers.CharField(default='male')
+    state = serializers.CharField(max_length=50)
+    property_value = serializers.FloatField(min_value=10000)
+    gender = serializers.ChoiceField(choices=['male', 'female', 'joint'], default='male')
 
 class LoanEligibilitySerializer(serializers.Serializer):
-    monthly_income = serializers.FloatField()
-    existing_emis = serializers.FloatField(default=0)
+    monthly_income = serializers.FloatField(min_value=10000)
+    existing_emis = serializers.FloatField(default=0.0)
     tenure_years = serializers.IntegerField(default=20)
     interest_rate = serializers.FloatField(default=8.5)

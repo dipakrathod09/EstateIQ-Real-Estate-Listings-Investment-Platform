@@ -15,6 +15,41 @@ export const createPropertyListing = async (data) => {
   return response.data;
 };
 
+export const requestEmailOTP = async (email) => {
+  const response = await client.post('/api/auth/email/request/', { email });
+  return response.data;
+};
+
+export const verifyEmailOTP = async (email, otp, role = 'buyer', name = '', consent = true) => {
+  const response = await client.post('/api/auth/email/verify/', { email, otp, role, name, consent });
+  return response.data;
+};
+
+export const googleSignIn = async (email, name = '', role = 'buyer', consent = true) => {
+  const response = await client.post('/api/auth/google/', { email, name, role, consent });
+  return response.data;
+};
+
+export const verifyPhoneNumber = async (phone_number, otp) => {
+  const response = await client.post('/api/users/verify-phone/', { phone_number, otp });
+  return response.data;
+};
+
+export const addUserRole = async (role, set_active = true) => {
+  const response = await client.post('/api/users/add-role/', { role, set_active });
+  return response.data;
+};
+
+export const updateUserPreferences = async (preferences) => {
+  const response = await client.patch('/api/users/preferences/', { preferences });
+  return response.data;
+};
+
+export const requestDataDeletion = async (request_type = 'deletion', notes = '') => {
+  const response = await client.post('/api/users/data-deletion-request/', { request_type, notes });
+  return response.data;
+};
+
 export const requestOTP = async (phone_number) => {
   const response = await client.post('/api/auth/otp/request/', { phone_number });
   return response.data;
@@ -72,11 +107,6 @@ export const calculateStampDuty = async (data) => {
 
 export const calculateLoanEligibility = async (data) => {
   const response = await client.post('/api/calculators/loan-eligibility/', data);
-  return response.data;
-};
-
-export const lookupRERAProject = async (rera_number) => {
-  const response = await client.get('/api/rera/lookup/', { params: { rera_number } });
   return response.data;
 };
 
