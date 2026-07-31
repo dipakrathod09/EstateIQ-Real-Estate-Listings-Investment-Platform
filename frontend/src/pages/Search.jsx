@@ -118,12 +118,16 @@ export const Search = () => {
   const [filteredListings, setFilteredListings] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Read saved user preferences for personalization pre-fill
+  const storedUserStr = localStorage.getItem('user');
+  const userPrefs = storedUserStr ? JSON.parse(storedUserStr)?.preferences : null;
+
   // Filter & Pagination States (All hooks at top level)
-  const [city, setCity] = useState(searchParams.get('city') || '');
+  const [city, setCity] = useState(searchParams.get('city') || userPrefs?.cities?.[0] || '');
   const [locality, setLocality] = useState(searchParams.get('locality') || '');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [propertyType, setPropertyType] = useState(searchParams.get('property_type') || '');
-  const [bhk, setBhk] = useState(searchParams.get('bhk') || '');
+  const [bhk, setBhk] = useState(searchParams.get('bhk') || (userPrefs?.bhk ? String(userPrefs.bhk) : ''));
   const [minPrice, setMinPrice] = useState(searchParams.get('min_price') || '');
   const [maxPrice, setMaxPrice] = useState(searchParams.get('max_price') || '');
   const [isVerified, setIsVerified] = useState(searchParams.get('is_verified') === 'true');
