@@ -62,6 +62,25 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         self.stdout.write("Seeding 5-city real estate demo listings...")
 
+        # Explicitly seed user-specified GujRERA record
+        RERAProject.objects.get_or_create(
+            rera_number='PR/GJ/AHMEDABAD/AHMEDABAD CITY/AUDA/RAA05186/EX1/171219',
+            defaults={
+                'state_authority': 'Gujarat RERA (GujRERA)',
+                'project_name': 'AUDA Skyline City Enclave (GujRERA Verified)',
+                'promoter_name': 'Ahmedabad Urban Development Authority & Apex Developers',
+                'registration_status': RERAProject.RegistrationStatus.APPROVED,
+                'compliance_score': 99,
+                'escrow_verified': True,
+                'escrow_bank_name': 'State Bank of India (GujRERA Escrow Account)',
+                'litigation_count': 0,
+                'approved_floors': 24,
+                'total_units': 192,
+                'official_portal_url': 'https://gujrera.gujarat.gov.in/projectSearch',
+                'document_url': 'https://gujrera.gujarat.gov.in/projectSearch'
+            }
+        )
+
         demo_user, _ = User.objects.get_or_create(
             username='demo_agent',
             defaults={

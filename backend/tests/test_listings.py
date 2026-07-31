@@ -103,3 +103,11 @@ class ListingsAPITestCase(TestCase):
         self.assertIn('compliance_score', data)
         self.assertIn('official_portal_url', data)
         self.assertIn('Gujarat RERA', data['state_authority'])
+
+    def test_specific_gujrera_full_number(self):
+        full_num = 'PR/GJ/AHMEDABAD/AHMEDABAD CITY/AUDA/RAA05186/EX1/171219'
+        response = self.client.get(f'/api/rera/lookup/?rera_number={full_num}')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['state_authority'], 'Gujarat RERA (GujRERA)')
+        self.assertEqual(data['official_portal_url'], 'https://gujrera.gujarat.gov.in/projectSearch')
