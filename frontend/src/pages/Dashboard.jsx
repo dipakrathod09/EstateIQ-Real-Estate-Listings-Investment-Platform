@@ -95,25 +95,57 @@ export const Dashboard = () => {
               <h1 className="font-display-lg text-2xl font-semibold text-ink-navy">
                 {[user?.first_name, user?.last_name].filter(Boolean).join(' ') || user?.username || 'User'}
               </h1>
-              <span className="px-2.5 py-0.5 rounded bg-warm-brass/20 text-ink-navy text-[10px] font-label-caps uppercase font-bold border border-warm-brass/40">
-                {user?.role || 'User'}
-              </span>
+              <div className="flex items-center space-x-1">
+                {(user?.roles || [user?.role || 'buyer']).map((r) => (
+                  <span key={r} className="px-2.5 py-0.5 rounded bg-warm-brass/20 text-ink-navy text-[10px] font-label-caps uppercase font-bold border border-warm-brass/40">
+                    {r}
+                  </span>
+                ))}
+              </div>
             </div>
+
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
-              {user?.phone_number && (
-                <span className="font-body-md text-xs text-slate-grey">
-                  📱 {user.phone_number}
-                </span>
-              )}
               {user?.email && (
                 <span className="font-body-md text-xs text-slate-grey">
                   ✉️ {user.email}
                 </span>
               )}
+              {user?.phone_number ? (
+                <span className="font-body-md text-xs text-slate-grey">
+                  📱 {user.phone_number} {user.is_phone_verified ? '(Verified)' : ''}
+                </span>
+              ) : (
+                <span className="font-body-md text-xs text-slate-grey">
+                  📱 Phone Not Added
+                </span>
+              )}
               <span className="font-body-md text-xs text-slate-grey">
-                {user?.is_phone_verified ? '✅ Verified Account' : '⚠️ Unverified'}
+                {user?.is_email_verified ? '✅ Verified Email' : '✉️ Email Active'}
               </span>
             </div>
+
+            {/* Profile Completeness Nudge for Agent/Builder */}
+            {['agent', 'builder'].includes(user?.role) && (
+              <div className="mt-3 p-3 rounded bg-surface-container border border-outline/30 text-xs space-y-1.5 max-w-md">
+                <div className="flex items-center justify-between text-slate-grey font-label-caps">
+                  <span>Profile Completeness</span>
+                  <span className="font-bold text-ink-navy">
+                    {user?.builder_profile?.rera_registration ? '100% Complete' : '75% Complete'}
+                  </span>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-surface-container-highest overflow-hidden">
+                  <div
+                    className="h-full bg-warm-brass rounded-full transition-all"
+                    style={{ width: user?.builder_profile?.rera_registration ? '100%' : '75%' }}
+                  ></div>
+                </div>
+                {!user?.builder_profile?.rera_registration && (
+                  <p className="text-[11px] text-slate-grey">
+                    💡 Fill in company name & RERA registration number to boost listing trust rating.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

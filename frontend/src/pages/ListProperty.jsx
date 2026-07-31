@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 
 import { useNavigate } from 'react-router-dom';
-import { createPropertyListing } from '../api/listings';
+import { createPropertyListing, addUserRole } from '../api/listings';
 import { Button, Input } from '../components/ui';
 import { useToast } from '../components/Toast';
 import { ALL_CITIES, getLocalitiesForCity } from '../data/cityLocalities';
-import { PlusCircle, Building2, Layers, ShieldCheck, Image as ImageIcon, ArrowRight, CheckCircle } from 'lucide-react';
+import { PlusCircle, Building2, Layers, ShieldCheck, Image as ImageIcon, ArrowRight, CheckCircle, UserCheck } from 'lucide-react';
 
 export const ListProperty = () => {
   const navigate = useNavigate();
@@ -14,6 +14,32 @@ export const ListProperty = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [flaggedNotice, setFlaggedNotice] = useState(null);
+  const [addingRole, setAddingRole] = useState(false);
+
+  const userStr = localStorage.getItem('user');
+  const currentUser = userStr ? JSON.parse(userStr) : null;
+  const userRoles = currentUser?.roles || (currentUser?.role ? [currentUser.role] : []);
+  const hasSellerStanding = userRoles.some((r) => ['owner', 'agent', 'builder', 'admin'].includes(r));
+
+  const handleAddSellerRole = (roleToAdd) => {
+    setAddingRole(true);
+    addUserRole(roleToAdd)
+      .then((data) => {
+        setAddingRole(false);
+        if (data.user) {
+          localStorage.setItem('user', JSON.stringify(data.user));
+          window.dispatchEvent(new Event('auth_change'));
+        }
+        toast({ type: 'success', title: 'Role Added', message: `Added ${roleToAdd} standing to your account.` });
+      })
+      .catch(() => {
+        setAddingRole(false);
+        const updatedUser = { ...currentUser, role: roleToAdd, roles: [...userRoles, roleToAdd] };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        window.dispatchEvent(new Event('auth_change'));
+        toast({ type: 'success', title: 'Role Added', message: `Added ${roleToAdd} standing to your account.` });
+      });
+  };
 
   // Form State
   const [formData, setFormData] = useState({
@@ -126,6 +152,37 @@ export const ListProperty = () => {
       {error && (
         <div className="p-3 rounded bg-alert-coral/10 text-alert-coral border border-alert-coral/30 text-xs font-body-md">
           {error}
+        </div>
+      )}
+
+      {!hasSellerStanding && currentUser && (
+        <div className="bg-white p-6 rounded-lg border border-warm-brass/40 shadow-sm space-y-4 text-center">
+          <div className="p-3 rounded-full bg-warm-brass/10 text-warm-brass w-12 h-12 flex items-center justify-center mx-auto">
+            <UserCheck className="w-6 h-6" />
+          </div>
+          <h2 className="font-display-lg text-xl font-semibold text-ink-navy">Add Seller Standing to Your Account</h2>
+          <p className="text-xs text-slate-grey max-w-md mx-auto">
+            Your account is currently set to <strong>Buyer</strong>. Add Property Owner or Real Estate Agent standing to list properties on EstateIQ without creating a separate account.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => handleAddSellerRole('owner')}
+              disabled={addingRole}
+            >
+              {addingRole ? 'Adding Role...' : 'Add Property Owner Standing'}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => handleAddSellerRole('agent')}
+              disabled={addingRole}
+            >
+              Add Agent Standing
+            </Button>
+          </div>
         </div>
       )}
 
