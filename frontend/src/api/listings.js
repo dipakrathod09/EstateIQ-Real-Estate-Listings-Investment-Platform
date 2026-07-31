@@ -75,6 +75,11 @@ export const calculateLoanEligibility = async (data) => {
   return response.data;
 };
 
+export const lookupRERAProject = async (rera_number) => {
+  const response = await client.get('/api/rera/lookup/', { params: { rera_number } });
+  return response.data;
+};
+
 export const fetchInvestments = async () => {
   const response = await client.get('/api/investments/');
   return response.data;

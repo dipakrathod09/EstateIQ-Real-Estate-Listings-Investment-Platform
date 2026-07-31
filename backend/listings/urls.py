@@ -5,7 +5,7 @@ from listings.views import (
     handle_favorites, remove_favorite, handle_saved_searches, emi_calculator,
     stamp_duty_calculator, loan_eligibility_calculator, list_investments,
     create_razorpay_order, razorpay_webhook, log_event, get_similar_listings,
-    get_ml_valuation, handle_reviews, locality_heatmap, predict_custom_price
+    get_ml_valuation, handle_reviews, locality_heatmap, predict_custom_price, rera_lookup
 )
 
 urlpatterns = [
@@ -41,6 +41,7 @@ urlpatterns = [
     path('calculators/stamp-duty/', stamp_duty_calculator, name='calc-stamp-duty'),
     path('calculators/loan-eligibility/', loan_eligibility_calculator, name='calc-loan-eligibility'),
     path('localities/heatmap/', locality_heatmap, name='locality-heatmap'),
+    path('rera/lookup/', rera_lookup, name='rera-lookup'),
 
     # Investment & Payments
     path('investments/', list_investments, name='investments-list'),

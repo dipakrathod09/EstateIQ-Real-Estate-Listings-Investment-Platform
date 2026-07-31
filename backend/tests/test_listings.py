@@ -95,3 +95,11 @@ class ListingsAPITestCase(TestCase):
         self.assertGreater(len(data), 0)
         self.assertIn('city', data[0])
         self.assertIn('locality', data[0])
+
+    def test_rera_lookup_api(self):
+        response = self.client.get('/api/rera/lookup/?rera_number=PR/GJ/AHMEDABAD/10293/2026')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn('compliance_score', data)
+        self.assertIn('official_portal_url', data)
+        self.assertIn('Gujarat RERA', data['state_authority'])

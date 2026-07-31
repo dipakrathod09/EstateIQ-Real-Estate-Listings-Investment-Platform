@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { fetchListingDetail, submitInquiry, logEvent, toggleFavorite } from '../api/listings';
+import { fetchListingDetail, submitInquiry, logEvent, toggleFavorite, lookupRERAProject } from '../api/listings';
 import { Button, Badge, StatBlock, Input } from '../components/ui';
-import { MapPin, Bed, Maximize2, Layers, Compass, Calendar, CheckCircle2, UserCheck, Send, Calculator, Heart } from 'lucide-react';
+import { RERAVerificationModal } from '../components/RERAVerificationModal';
+import { MapPin, Bed, Maximize2, Layers, Compass, Calendar, CheckCircle2, UserCheck, Send, Calculator, Heart, ShieldCheck } from 'lucide-react';
 
 const FALLBACK_PROPERTIES = {
   '1': {
@@ -83,6 +84,18 @@ export const PropertyDetails = () => {
   const [submitStatus, setSubmitStatus] = useState(null);
   const [isFavorited, setIsFavorited] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
+
+  const [isReraModalOpen, setIsReraModalOpen] = useState(false);
+  const [reraAuditData, setReraAuditData] = useState(null);
+
+  const handleOpenReraModal = () => {
+    setIsReraModalOpen(true);
+    if (prop?.rera_number || prop?.rera_details) {
+      lookupRERAProject(prop.rera_number || 'PR/GJ/AHMEDABAD/10293/2026')
+        .then((data) => setReraAuditData(data))
+        .catch(() => setReraAuditData(null));
+    }
+  };
 
   const handleFavToggle = () => {
     setFavLoading(true);
@@ -237,12 +250,22 @@ export const PropertyDetails = () => {
 
             {/* RERA Verification Container */}
             {prop.rera_number && (
-              <div className="p-3 rounded bg-signal-teal/10 border border-signal-teal/30 flex items-center space-x-3 text-xs text-signal-teal-text">
-                <Badge variant="verified" />
-                <div className="ml-2">
-                  <span className="font-label-caps uppercase font-bold block">Gujarat RERA Registered</span>
-                  <span className="font-data-stats">RERA No: {prop.rera_number}</span>
+              <div className="p-3.5 rounded bg-signal-teal/10 border border-signal-teal/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-signal-teal-text">
+                <div className="flex items-center space-x-3">
+                  <Badge variant="verified" />
+                  <div>
+                    <span className="font-label-caps uppercase font-bold block">RERA Registered Property</span>
+                    <span className="font-data-stats font-mono">RERA No: {prop.rera_number}</span>
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={handleOpenReraModal}
+                  className="px-3 py-1.5 rounded bg-signal-teal/20 hover:bg-signal-teal/30 text-signal-teal-text font-label-caps uppercase text-[11px] font-semibold flex items-center space-x-1 cursor-pointer transition-colors border border-signal-teal/40"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>View RERA Audit Report</span>
+                </button>
               </div>
             )}
 
@@ -387,6 +410,13 @@ export const PropertyDetails = () => {
           </div>
         </div>
       </div>
+
+      <RERAVerificationModal
+        isOpen={isReraModalOpen}
+        onClose={() => setIsReraModalOpen(false)}
+        reraData={reraAuditData || prop.rera_details}
+        reraNumber={prop.rera_number}
+      />
     </div>
   );
 };

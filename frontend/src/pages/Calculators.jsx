@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { calculateEMI, calculateStampDuty, calculateLoanEligibility, predictPropertyPrice } from '../api/listings';
+import { calculateEMI, calculateStampDuty, calculateLoanEligibility, predictPropertyPrice, lookupRERAProject } from '../api/listings';
 import { Button, Input, StatBlock, Badge } from '../components/ui';
 import { ALL_CITIES, getLocalitiesForCity } from '../data/cityLocalities';
-import { Calculator, Landmark, Wallet, Sparkles, TrendingUp, CheckCircle2, ShieldCheck, Tag } from 'lucide-react';
+import { Calculator, Landmark, Wallet, Sparkles, TrendingUp, CheckCircle2, ShieldCheck, Tag, ExternalLink, Building2, Lock, Scale } from 'lucide-react';
 
 export const Calculators = () => {
   const [activeTab, setActiveTab] = useState('ml_predict');
@@ -34,6 +34,25 @@ export const Calculators = () => {
   const [predListedPrice, setPredListedPrice] = useState('8500000');
   const [predResult, setPredResult] = useState(null);
   const [predLoading, setPredLoading] = useState(false);
+
+  // RERA Lookup State
+  const [reraInputNumber, setReraInputNumber] = useState('PR/GJ/AHMEDABAD/10293/2026');
+  const [reraResult, setReraResult] = useState(null);
+  const [reraLoading, setReraLoading] = useState(false);
+
+  const handleReraLookupSubmit = (e) => {
+    if (e) e.preventDefault();
+    setReraLoading(true);
+    lookupRERAProject(reraInputNumber)
+      .then((data) => {
+        setReraResult(data);
+        setReraLoading(false);
+      })
+      .catch(() => {
+        setReraResult(null);
+        setReraLoading(false);
+      });
+  };
 
   // Instant Client-Side Computation Fallbacks
   const computeClientEMI = (pVal, rVal, tVal) => {
@@ -240,6 +259,22 @@ export const Calculators = () => {
         >
           <Wallet className="w-4 h-4" />
           <span>Loan Eligibility</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('rera');
+            if (!reraResult) handleReraLookupSubmit();
+          }}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all cursor-pointer ${
+            activeTab === 'rera'
+              ? 'bg-signal-teal text-white shadow-sm font-semibold'
+              : 'bg-surface-container text-slate-grey hover:text-ink-navy'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4" />
+          <span>🛡️ RERA Verification</span>
         </button>
       </div>
 
@@ -575,6 +610,83 @@ export const Calculators = () => {
               ) : null}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* 🛡️ TAB 5: RERA VERIFICATION */}
+      {activeTab === 'rera' && (
+        <div className="space-y-6">
+          <form onSubmit={handleReraLookupSubmit} className="bg-white p-6 rounded-lg border border-surface-variant shadow-sm space-y-4 max-w-2xl">
+            <div className="flex items-center space-x-2 text-ink-navy font-semibold text-base border-b border-surface-container pb-3">
+              <ShieldCheck className="w-5 h-5 text-signal-teal" />
+              <span>State RERA Registration Verification Engine</span>
+            </div>
+
+            <p className="text-xs text-slate-grey">
+              Paste any state RERA registration number (*GujRERA, MahaRERA, HARERA, K-RERA*) to analyze timeline compliance, mandatory 70% bank escrow verification, and open direct government records.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <div className="flex-1 w-full">
+                <Input
+                  label="RERA Registration Number"
+                  placeholder="e.g. PR/GJ/AHMEDABAD/10293/2026 or P51800001234"
+                  value={reraInputNumber}
+                  onChange={(e) => setReraInputNumber(e.target.value)}
+                  required
+                />
+              </div>
+              <Button type="submit" variant="primary" className="w-full sm:w-auto mt-2 sm:mt-5" disabled={reraLoading}>
+                {reraLoading ? 'Analyzing RERA...' : 'Verify RERA Number'}
+              </Button>
+            </div>
+          </form>
+
+          {reraResult && (
+            <div className="bg-white p-6 rounded-lg border border-surface-variant shadow-sm space-y-6 max-w-4xl">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-surface-container pb-4">
+                <div>
+                  <div className="flex items-center space-x-2 text-signal-teal text-xs font-label-caps uppercase">
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>{reraResult.state_authority || 'RERA Statutory Audit'}</span>
+                  </div>
+                  <h2 className="font-display-lg text-xl font-semibold text-ink-navy">{reraResult.project_name}</h2>
+                  <span className="font-mono text-xs text-warm-brass font-semibold">RERA Reg: {reraResult.rera_number}</span>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <div className="text-center px-4 py-2 bg-signal-teal/10 border border-signal-teal/30 rounded-lg">
+                    <span className="text-xs text-slate-grey font-label-caps block">Trust Index</span>
+                    <span className="text-2xl font-bold text-signal-teal-text">{reraResult.compliance_score}/100</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                <StatBlock label="Developer / Entity" value={reraResult.promoter_name} icon={Building2} />
+                <StatBlock label="70% Escrow Status" value={reraResult.escrow_bank_name} icon={Lock} />
+                <StatBlock label="Promised Timeline" value={reraResult.promised_completion_date || 'Dec 2027'} icon={TrendingUp} />
+                <StatBlock label="Active Litigations" value={`${reraResult.litigation_count || 0} Complaints`} icon={Scale} />
+              </div>
+
+              <div className="p-4 rounded-lg bg-surface-container border border-surface-variant flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="text-xs text-slate-grey">
+                  <span>Direct 1-Click Link to Official Government Portal:</span>
+                  <span className="block font-semibold text-ink-navy">{reraResult.official_portal_url}</span>
+                </div>
+
+                <a
+                  href={reraResult.official_portal_url || 'https://gujrera.gujarat.gov.in/projectSearch'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 rounded bg-warm-brass hover:bg-warm-brass-dark text-white font-label-caps text-xs uppercase flex items-center space-x-1.5 transition-colors cursor-pointer shrink-0"
+                >
+                  <span>Open State Government Portal</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
