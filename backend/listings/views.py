@@ -5,9 +5,12 @@ from rest_framework import status
 from django.db.models import Q
 from decimal import Decimal
 
+from django.contrib.auth import get_user_model
 from listings.models import (
     Property, PropertyImage, Listing, Inquiry, SiteVisit, Favorite, SavedSearch, InvestmentListing
 )
+
+User = get_user_model()
 from listings.serializers import (
     PropertySerializer, ListingSerializer, CreatePropertyListingSerializer,
     InquirySerializer, SiteVisitSerializer, FavoriteSerializer, SavedSearchSerializer,
