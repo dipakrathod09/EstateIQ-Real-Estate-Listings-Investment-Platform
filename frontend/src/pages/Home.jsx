@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { fetchBackendHealth } from '../api/client';
 import { fetchListings } from '../api/listings';
 import { PropertyCard, Button } from '../components/ui';
-import { Search, Building2, Sparkles, Activity, ArrowRight } from 'lucide-react';
+import { Search, Building2, Sparkles, Activity, ArrowRight, RefreshCw } from 'lucide-react';
 
 export const Home = () => {
   const [health, setHealth] = useState(null);
@@ -11,14 +11,20 @@ export const Home = () => {
   const [loading, setLoading] = useState(true);
   const [searchCity, setSearchCity] = useState('Ahmedabad');
 
+  const checkHealthStatus = () => {
+    fetchBackendHealth()
+      .then((data) => setHealth(data))
+      .catch(() => setHealth({ status: 'offline' }));
+  };
+
   useEffect(() => {
     let isMounted = true;
     Promise.all([
-      fetchBackendHealth().catch(() => null),
+      fetchBackendHealth().catch(() => ({ status: 'offline' })),
       fetchListings({ city: 'Ahmedabad' }).catch(() => [])
     ]).then(([healthData, listingsData]) => {
       if (isMounted) {
-        setHealth(healthData);
+        setHealth(healthData || { status: 'offline' });
         setListings(Array.isArray(listingsData) ? listingsData : []);
         setLoading(false);
       }
@@ -85,14 +91,29 @@ export const Home = () => {
             </div>
           </div>
 
-          <div>
-            {health ? (
+          <div className="flex items-center space-x-2">
+            {health?.status === 'ok' ? (
               <span className="inline-flex items-center px-3 py-1 rounded text-xs font-label-caps bg-signal-teal/10 text-signal-teal-text border border-signal-teal/30">
                 <span className="w-2 h-2 rounded-full bg-signal-teal mr-2 animate-ping"></span>
-                Connected ({health.status})
+                Connected (ok)
               </span>
+            ) : health?.status === 'offline' ? (
+              <div className="flex items-center space-x-2">
+                <span className="inline-flex items-center px-3 py-1 rounded text-xs font-label-caps bg-alert-coral/10 text-alert-coral border border-alert-coral/30">
+                  <span className="w-2 h-2 rounded-full bg-alert-coral mr-2"></span>
+                  Offline
+                </span>
+                <button
+                  type="button"
+                  onClick={checkHealthStatus}
+                  className="px-2.5 py-1 rounded bg-surface-container hover:bg-surface-container-high text-xs text-ink-navy flex items-center space-x-1 cursor-pointer transition-colors"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  <span>Retry</span>
+                </button>
+              </div>
             ) : (
-              <span className="inline-flex items-center px-3 py-1 rounded text-xs font-label-caps bg-alert-coral/10 text-alert-coral border border-alert-coral/30">
+              <span className="inline-flex items-center px-3 py-1 rounded text-xs font-label-caps bg-warm-brass/10 text-warm-brass border border-warm-brass/30">
                 Connecting...
               </span>
             )}
