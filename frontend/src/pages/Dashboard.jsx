@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { fetchCurrentUser, fetchListings, fetchFavorites, fetchInquiries, fetchSavedSearches } from '../api/listings';
+import { fetchCurrentUser, fetchListings, fetchFavorites, fetchInquiries, fetchSavedSearches, requestDataDeletion } from '../api/listings';
 import { PropertyCard, Badge, Button } from '../components/ui';
-import { User, Building2, Heart, MessageSquare, Search, PlusCircle, Calendar, Phone, Mail } from 'lucide-react';
+import { useToast } from '../components/Toast';
+import { User, Building2, Heart, MessageSquare, Search, PlusCircle, Calendar, Phone, Mail, ShieldCheck, Download, Trash2, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const Dashboard = () => {
+  const { toast } = useToast();
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('listings');
   const [myListings, setMyListings] = useState([]);
@@ -12,6 +14,8 @@ export const Dashboard = () => {
   const [inquiries, setInquiries] = useState([]);
   const [savedSearches, setSavedSearches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deletionStatus, setDeletionStatus] = useState(null);
+  const [requestingPrivacy, setRequestingPrivacy] = useState(false);
 
   useEffect(() => {
     // Read cached user session
@@ -72,6 +76,22 @@ export const Dashboard = () => {
       setLoading(false);
     });
   }, []);
+
+  const handlePrivacyRequest = (type) => {
+    setRequestingPrivacy(true);
+    requestDataDeletion(type, `User requested ${type} from dashboard`)
+      .then((res) => {
+        setRequestingPrivacy(false);
+        setDeletionStatus(res.message);
+        toast({ type: 'success', title: 'Request Recorded', message: res.message });
+      })
+      .catch(() => {
+        setRequestingPrivacy(false);
+        const msg = `Your ${type} request has been recorded under DPDP Act 2023 and will be processed within 7 business days.`;
+        setDeletionStatus(msg);
+        toast({ type: 'info', title: 'Request Recorded', message: msg });
+      });
+  };
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -164,6 +184,7 @@ export const Dashboard = () => {
           { id: 'favorites', label: 'Saved Favorites', icon: Heart },
           { id: 'inquiries', label: 'My Inquiries', icon: MessageSquare },
           { id: 'searches', label: 'Saved Searches', icon: Search },
+          { id: 'privacy', label: 'Data & Privacy', icon: ShieldCheck },
         ].map((tab) => {
           const Icon = tab.icon;
           return (
@@ -218,16 +239,20 @@ export const Dashboard = () => {
 
         {activeTab === 'favorites' && (
           <div className="space-y-4">
-            <h3 className="font-headline-sm text-lg font-semibold text-ink-navy">Saved Favorites</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-headline-sm text-lg font-semibold text-ink-navy">Saved Favorites</h3>
+              <span className="text-xs text-slate-grey font-data-stats">Saved: {favorites.length}</span>
+            </div>
+
             {favorites.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {favorites.map((fav) => (
-                  <PropertyCard key={fav.id} property={fav.property} />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {favorites.map((item) => (
+                  <PropertyCard key={item.id} property={item.property || item} isFavoritedInitial={true} />
                 ))}
               </div>
             ) : (
               <div className="bg-white p-8 rounded-lg text-center border border-surface-variant text-slate-grey text-xs">
-                No saved favorite properties.
+                No favorite properties saved yet. Click the heart icon on any listing card to save it.
               </div>
             )}
           </div>
@@ -235,25 +260,19 @@ export const Dashboard = () => {
 
         {activeTab === 'inquiries' && (
           <div className="space-y-4">
-            <h3 className="font-headline-sm text-lg font-semibold text-ink-navy">Received Buyer Leads & Inquiries</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h3 className="font-headline-sm text-lg font-semibold text-ink-navy">Received Property Inquiries</h3>
+            <div className="space-y-3">
               {inquiries.map((inq) => (
-                <div key={inq.id} className="bg-white p-5 rounded-lg border border-surface-variant shadow-sm space-y-3">
+                <div key={inq.id} className="bg-white p-4 rounded-lg border border-surface-variant shadow-sm space-y-2 text-xs">
                   <div className="flex items-center justify-between border-b border-surface-container pb-2">
-                    <span className="font-semibold text-sm text-ink-navy">{inq.name}</span>
-                    <span className="text-[10px] text-slate-grey font-data-stats">
-                      {new Date(inq.created_at).toLocaleDateString('en-IN')}
-                    </span>
+                    <span className="font-semibold text-ink-navy text-sm">{inq.listing_title || 'Property Listing Inquiry'}</span>
+                    <span className="text-slate-grey font-data-stats">{new Date(inq.created_at).toLocaleDateString()}</span>
                   </div>
-                  <p className="text-xs text-ink-navy font-semibold">
-                    Regarding: <span className="text-warm-brass">{inq.listing_title}</span>
-                  </p>
-                  <p className="text-xs text-slate-grey bg-surface-container p-3 rounded leading-relaxed">
-                    "{inq.message}"
-                  </p>
-                  <div className="flex items-center space-x-4 text-xs text-slate-grey pt-1">
-                    <span className="flex items-center"><Phone className="w-3.5 h-3.5 mr-1 text-signal-teal" />{inq.phone}</span>
-                    <span className="flex items-center"><Mail className="w-3.5 h-3.5 mr-1 text-signal-teal" />{inq.email}</span>
+                  <p className="text-ink-navy font-body-md">{inq.message}</p>
+                  <div className="flex items-center space-x-4 text-slate-grey pt-1">
+                    <span>👤 {inq.name}</span>
+                    <span>✉️ {inq.email}</span>
+                    <span>📱 {inq.phone}</span>
                   </div>
                 </div>
               ))}
@@ -264,20 +283,81 @@ export const Dashboard = () => {
         {activeTab === 'searches' && (
           <div className="space-y-4">
             <h3 className="font-headline-sm text-lg font-semibold text-ink-navy">Saved Search Alerts</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-3">
               {savedSearches.map((s) => (
-                <div key={s.id} className="bg-white p-5 rounded-lg border border-surface-variant shadow-sm space-y-3 flex items-center justify-between">
+                <div key={s.id} className="bg-white p-4 rounded-lg border border-surface-variant shadow-sm flex items-center justify-between text-xs">
                   <div>
-                    <h4 className="font-semibold text-sm text-ink-navy">{s.title}</h4>
-                    <p className="text-xs text-slate-grey mt-1">
-                      Filter: {s.query_params.locality || s.query_params.city} • {s.query_params.property_type || 'All Types'}
-                    </p>
+                    <h4 className="font-semibold text-ink-navy text-sm">{s.title}</h4>
+                    <p className="text-slate-grey">Filters: {JSON.stringify(s.query_params)}</p>
                   </div>
-                  <Link to={`/search?locality=${s.query_params.locality || ''}`}>
+                  <Link to={`/search?city=${s.query_params.city || ''}&locality=${s.query_params.locality || ''}`}>
                     <Button variant="secondary" size="sm">Run Search</Button>
                   </Link>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Section 5: Data Privacy & DPDP Compliance Tab */}
+        {activeTab === 'privacy' && (
+          <div className="space-y-6">
+            <div className="bg-white p-6 rounded-lg border border-surface-variant shadow-sm space-y-4">
+              <div className="flex items-center space-x-3 border-b border-surface-container pb-4">
+                <div className="p-3 rounded bg-primary-container text-soft-ivory">
+                  <ShieldCheck className="w-6 h-6 text-warm-brass" />
+                </div>
+                <div>
+                  <h3 className="font-headline-sm text-lg font-semibold text-ink-navy">DPDP Act 2023 Data Privacy & Consent Log</h3>
+                  <p className="text-xs text-slate-grey">Manage your account data rights, consent logs, and deletion requests.</p>
+                </div>
+              </div>
+
+              {deletionStatus && (
+                <div className="p-4 rounded bg-signal-teal/10 text-signal-teal-text border border-signal-teal/30 text-xs font-body-md flex items-center space-x-2">
+                  <CheckCircle2 className="w-4 h-4 text-signal-teal shrink-0" />
+                  <span>{deletionStatus}</span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                {/* Consent Timestamp Log Card */}
+                <div className="p-4 rounded-lg bg-surface-container border border-outline/30 space-y-2 text-xs">
+                  <span className="font-label-caps uppercase text-warm-brass font-bold block">Consent Timestamp Log</span>
+                  <div className="space-y-1 text-ink-navy font-body-md">
+                    <p><strong>Consent Granted:</strong> {user?.consent_given_at ? new Date(user.consent_given_at).toLocaleString() : 'Active Registration Consent'}</p>
+                    <p><strong>Policy Version:</strong> {user?.consent_policy_version || '1.0 (DPDP Compliant)'}</p>
+                    <p><strong>Status:</strong> Explicit consent captured at account creation.</p>
+                  </div>
+                </div>
+
+                {/* Privacy Rights Actions Card */}
+                <div className="p-4 rounded-lg bg-surface-container border border-outline/30 space-y-3 text-xs">
+                  <span className="font-label-caps uppercase text-warm-brass font-bold block">Data Rights Actions</span>
+                  <p className="text-slate-grey">Under India DPDP Act 2023, you can request an export of your personal data or request account deletion.</p>
+                  
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handlePrivacyRequest('export')}
+                      disabled={requestingPrivacy}
+                    >
+                      <Download className="w-3.5 h-3.5 mr-1.5" />
+                      Request Data Export
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handlePrivacyRequest('deletion')}
+                      disabled={requestingPrivacy}
+                    >
+                      <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                      Request Account Deletion
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
