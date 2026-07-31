@@ -93,6 +93,7 @@ export const PropertyDetails = () => {
       .then(() => setFavLoading(false))
       .catch(() => setFavLoading(false));
   };
+  const [downPaymentPercent, setDownPaymentPercent] = useState('20');
   const [interestRate, setInterestRate] = useState('8.5');
   const [tenureYears, setTenureYears] = useState('20');
 
