@@ -4,7 +4,7 @@ import { MapPin, Bed, Maximize2, Heart } from 'lucide-react';
 import { Badge } from './Badge';
 import { toggleFavorite } from '../../api/listings';
 
-export const PropertyCard = ({ property, isFavoritedInitial = false, onToggleFavorite }) => {
+export const PropertyCard = ({ property, listingId, isFavoritedInitial = false, onToggleFavorite }) => {
   const {
     id = '1',
     title = '3 BHK Modern Apartment',
@@ -19,6 +19,8 @@ export const PropertyCard = ({ property, isFavoritedInitial = false, onToggleFav
     deal_tag,
     primary_image = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=600&q=80',
   } = property || {};
+
+  const targetDetailId = listingId || property?.listing_id || property?.id || id;
 
   const [isFavorited, setIsFavorited] = useState(isFavoritedInitial);
   const [favLoading, setFavLoading] = useState(false);
@@ -131,7 +133,7 @@ export const PropertyCard = ({ property, isFavoritedInitial = false, onToggleFav
             </span>
           </div>
           <Link
-            to={`/property/${id}`}
+            to={`/property/${targetDetailId}`}
             className="px-3.5 py-1.5 rounded bg-surface-container-high hover:bg-warm-brass hover:text-white text-ink-navy text-xs font-label-caps uppercase transition-colors"
           >
             View Details

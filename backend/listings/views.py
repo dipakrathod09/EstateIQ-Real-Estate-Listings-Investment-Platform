@@ -73,13 +73,17 @@ def list_listings(request):
 def get_listing_detail(request, pk):
     """
     Public endpoint for detailed property listing information.
+    Supports lookup by Listing ID or Property ID.
     """
-    try:
-        listing = Listing.objects.select_related('property', 'user').get(pk=pk)
+    listing = Listing.objects.select_related('property', 'user').filter(
+        Q(pk=pk) | Q(property_id=pk)
+    ).first()
+
+    if listing:
         serializer = ListingSerializer(listing)
         return Response(serializer.data)
-    except Listing.DoesNotExist:
-        return Response({"error": "Listing not found"}, status=status.HTTP_404_NOT_FOUND)
+    
+    return Response({"error": "Listing not found"}, status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['POST'])
@@ -523,7 +527,9 @@ def get_similar_listings(request, pk):
     BHK +- 1, and price band +- 25%.
     """
     try:
-        source_listing = Listing.objects.select_related('property').get(pk=pk)
+        source_listing = Listing.objects.select_related('property').filter(Q(pk=pk) | Q(property_id=pk)).first()
+        if not source_listing:
+            return Response([], status=status.HTTP_200_OK)
         prop = source_listing.property
 
         min_price = prop.price * Decimal('0.75')
@@ -540,7 +546,7 @@ def get_similar_listings(request, pk):
 
         serializer = ListingSerializer(similar_qs, many=True)
         return Response(serializer.data)
-    except Listing.DoesNotExist:
+    except Exception:
         return Response([], status=status.HTTP_200_OK)
 
 
@@ -552,7 +558,9 @@ def get_ml_valuation(request, pk):
     predicted price valuation, confidence score, and deal tag.
     """
     try:
-        listing = Listing.objects.select_related('property').get(pk=pk)
+        listing = Listing.objects.select_related('property').filter(Q(pk=pk) | Q(property_id=pk)).first()
+        if not listing:
+            return Response({"error": "Listing not found"}, status=status.HTTP_404_NOT_FOUND)
         prop = listing.property
 
         import requests
