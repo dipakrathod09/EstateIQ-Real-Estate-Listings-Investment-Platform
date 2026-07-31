@@ -139,7 +139,7 @@ export const Home = () => {
           ) : listings.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {listings.slice(0, 6).map((listing) => (
-                <PropertyCard key={listing.id} property={listing.property} />
+                <PropertyCard key={listing.id} property={listing.property} listingId={listing.id} />
               ))}
             </div>
           ) : (
