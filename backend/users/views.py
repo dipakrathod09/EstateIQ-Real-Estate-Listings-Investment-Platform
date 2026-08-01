@@ -437,9 +437,9 @@ def add_user_role(request):
     if new_role not in user.roles:
         user.roles.append(new_role)
 
-    # Set as active role if requested
-    if request.data.get('set_active', True):
-        user.role = new_role
+    # If self-adding agent or builder role, require verification
+    if new_role in [User.Role.AGENT, User.Role.BUILDER]:
+        user.is_role_verified = False
 
     user.save()
 
@@ -451,8 +451,31 @@ def add_user_role(request):
         )
 
     return Response({
-        "message": f"Role '{new_role}' successfully added to your account",
+        "message": f"Role '{new_role}' added to account. Professional features will activate once verified by admin.",
         "user": UserSerializer(user).data
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def approve_user_role(request, user_id):
+    """
+    Admin endpoint to approve professional role standing for Builder/Agent users.
+    """
+    if not (request.user.is_staff or request.user.role == User.Role.ADMIN):
+        return Response({"error": "Admin permission required"}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        target_user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    target_user.is_role_verified = True
+    target_user.save()
+
+    return Response({
+        "message": f"Role standing for user {target_user.email} has been approved.",
+        "user": UserSerializer(target_user).data
     }, status=status.HTTP_200_OK)
 
 

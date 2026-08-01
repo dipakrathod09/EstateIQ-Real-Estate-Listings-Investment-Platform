@@ -2,7 +2,7 @@ from django.urls import path
 from users.views import (
     request_email_otp, verify_email_otp, google_auth, verify_phone_number,
     password_register, password_login, password_reset_request, password_reset_confirm,
-    add_user_role, update_user_preferences, request_data_deletion,
+    add_user_role, approve_user_role, update_user_preferences, request_data_deletion,
     request_otp, verify_otp, current_user
 )
 
@@ -21,6 +21,7 @@ urlpatterns = [
 
     # Multi-Role & Preferences (Section 3 & Section 4)
     path('users/add-role/', add_user_role, name='users-add-role'),
+    path('users/approve-role/<int:user_id>/', approve_user_role, name='users-approve-role'),
     path('users/preferences/', update_user_preferences, name='users-preferences'),
 
     # Compliance & Data Privacy (Section 5)

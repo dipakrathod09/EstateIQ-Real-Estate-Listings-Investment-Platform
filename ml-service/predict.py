@@ -4,10 +4,11 @@ a price for a new listing. This is the function you'd wrap in a DRF view /
 FastAPI endpoint (see README.md).
 """
 
-import joblib
+import os, joblib
 import pandas as pd
 
-bundle = joblib.load("price_model.pkl")
+model_path = os.path.join(os.path.dirname(__file__), "price_model_100k.pkl")
+bundle = joblib.load(model_path)
 model = bundle["model"]
 encoder = bundle["encoder"]
 FEATURES = bundle["features"]

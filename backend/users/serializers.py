@@ -26,14 +26,14 @@ class VerifyEmailOTPSerializer(serializers.Serializer):
     otp = serializers.CharField(max_length=6)
     role = serializers.ChoiceField(choices=User.Role.choices, default=User.Role.BUYER)
     name = serializers.CharField(max_length=150, required=False, allow_blank=True)
-    consent = serializers.BooleanField(default=True)
+    consent = serializers.BooleanField(required=True)
 
 class GoogleAuthSerializer(serializers.Serializer):
     email = serializers.EmailField()
     name = serializers.CharField(max_length=150, required=False, allow_blank=True)
     credential = serializers.CharField(required=False, allow_blank=True)
     role = serializers.ChoiceField(choices=User.Role.choices, default=User.Role.BUYER)
-    consent = serializers.BooleanField(default=True)
+    consent = serializers.BooleanField(required=True)
 
 class VerifyPhoneSerializer(serializers.Serializer):
     phone_number = serializers.CharField(max_length=20)
@@ -44,7 +44,7 @@ class PasswordRegisterSerializer(serializers.Serializer):
     password = serializers.CharField(min_length=6)
     name = serializers.CharField(max_length=150, required=False, allow_blank=True)
     role = serializers.ChoiceField(choices=User.Role.choices, default=User.Role.BUYER)
-    consent = serializers.BooleanField(default=True)
+    consent = serializers.BooleanField(required=True)
 
 class PasswordLoginSerializer(serializers.Serializer):
     email = serializers.EmailField()

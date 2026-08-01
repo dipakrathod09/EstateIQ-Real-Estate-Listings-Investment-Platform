@@ -144,17 +144,45 @@ def create_listing(request):
         has_lift=data.get('has_lift', False),
     )
 
-    # Attach images if provided
-    image_urls = data.get('image_urls', [])
-    for idx, url in enumerate(image_urls):
-        PropertyImage.objects.create(
-            property=property_obj,
-            image_url=url,
-            order=idx,
-            is_primary=(idx == 0)
-        )
+from urllib.parse import urlparse
+import ipaddress, re
 
-    has_rera = bool(data.get('rera_number', '').strip())
+def validate_safe_image_url(url_str):
+    """
+    Validates URL scheme and rejects loopback/private IP ranges to prevent SSRF vulnerabilities.
+    """
+    if not url_str or not isinstance(url_str, str):
+        return False
+    parsed = urlparse(url_str.strip())
+    if parsed.scheme not in ('http', 'https'):
+        return False
+    hostname = parsed.hostname
+    if not hostname or hostname.lower() in ('localhost', '127.0.0.1', '::1', '0.0.0.0'):
+        return False
+    try:
+        ip = ipaddress.ip_address(hostname)
+        if ip.is_private or ip.is_loopback or ip.is_link_local:
+            return False
+    except ValueError:
+        pass
+    return True
+
+# Attach images if provided (with SSRF validation)
+    image_urls = data.get('image_urls', [])
+    valid_count = 0
+    for idx, url in enumerate(image_urls):
+        if validate_safe_image_url(url):
+            PropertyImage.objects.create(
+                property=property_obj,
+                image_url=url,
+                order=valid_count,
+                is_primary=(valid_count == 0)
+            )
+            valid_count += 1
+
+    # RERA Format Validation (e.g. PR/GJ/AHMEDABAD/... or 8-30 alphanumeric hyphen chars)
+    rera_str = data.get('rera_number', '').strip().upper()
+    has_valid_rera = bool(rera_str and re.match(r'^[A-Z0-9/-]{8,30}$', rera_str))
     initial_status = Listing.Status.LIVE if not duplicate_exists else Listing.Status.DRAFT
 
     user = request.user if request.user and request.user.is_authenticated else User.objects.first()

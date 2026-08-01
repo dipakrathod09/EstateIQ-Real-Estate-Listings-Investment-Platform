@@ -102,6 +102,8 @@ export const Login = () => {
           roles: [role],
           is_email_verified: true,
         };
+        // SECURITY AUDIT NOTE: Token currently saved in localStorage for SPA session persistence.
+        // PRODUCTION RECOMMENDATION: Transition to httpOnly, SameSite=Strict cookies set via backend HTTP headers.
         localStorage.setItem('token', data.access || 'mock_google_jwt_access_token');
         localStorage.setItem('user', JSON.stringify(userObj));
         localStorage.setItem('trigger_onboarding', 'true');

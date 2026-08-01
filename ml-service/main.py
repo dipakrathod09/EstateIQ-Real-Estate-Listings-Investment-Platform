@@ -2,6 +2,7 @@ import os
 import joblib
 import pandas as pd
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional
 
@@ -9,6 +10,16 @@ app = FastAPI(
     title="EstateIQ ML Microservice",
     description="Microservice serving real XGBoost price prediction model trained on 100k properties",
     version="2.0.0"
+)
+
+# Restrict CORS to Django Backend server-to-server origins
+allowed_origins = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:8000,http://backend:8000").split(",")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
 )
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "price_model_100k.pkl")

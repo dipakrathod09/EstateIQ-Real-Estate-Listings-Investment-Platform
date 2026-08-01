@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-estateiq_db}
       POSTGRES_USER: ${POSTGRES_USER:-estateiq_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-estateiq_pass}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-estateiq_pass_secret}
     ports:
       - "5432:5432"
     volumes:
@@ -31,7 +31,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER:-estateiq_user}:${POSTGRES_PASSWORD:-estateiq_pass}@db:5432/${POSTGRES_DB:-estateiq_db}
+      - DATABASE_URL=postgres://${POSTGRES_USER:-estateiq_user}:${POSTGRES_PASSWORD:-estateiq_pass_secret}@db:5432/${POSTGRES_DB:-estateiq_db}
       - SECRET_KEY=${SECRET_KEY:-django-insecure-dev-secret-key-estateiq-2026}
       - DEBUG=${DEBUG:-True}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}

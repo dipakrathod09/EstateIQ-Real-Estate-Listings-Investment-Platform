@@ -22,6 +22,7 @@ class User(AbstractUser):
     phone_number = models.CharField(max_length=20, unique=True, null=True, blank=True)
     is_phone_verified = models.BooleanField(default=False)
     is_email_verified = models.BooleanField(default=False)
+    is_role_verified = models.BooleanField(default=False, help_text="Admin verified standing for Builder/Agent professional roles")
 
     # Email OTP & Magic Link Auth (Section 2)
     email_otp = models.CharField(max_length=6, blank=True, null=True)
