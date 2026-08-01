@@ -28,12 +28,9 @@ from users.serializers import (
     PasswordResetRequestSerializer, PasswordResetConfirmSerializer
 )
 
-def send_auth_email(subject, recipient_email, plain_text, html_content=None):
-    """
-    Sends transactional HTML email via Django's configured email backend (SMTP / SendGrid / SES).
-    Fails silently in dev mode if SMTP credentials are not configured.
-    """
-    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'EstateIQ <noreply@estateiq.com>')
+import threading
+
+def _send_email_task(subject, recipient_email, plain_text, html_content, from_email):
     try:
         send_mail(
             subject=subject,
@@ -45,6 +42,18 @@ def send_auth_email(subject, recipient_email, plain_text, html_content=None):
         )
     except Exception as exc:
         print(f"[EMAIL DELIVERY LOG] Could not deliver to {recipient_email}: {exc}")
+
+def send_auth_email(subject, recipient_email, plain_text, html_content=None):
+    """
+    Asynchronously dispatches transactional HTML email in a background thread to prevent blocking the HTTP worker.
+    """
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'EstateIQ <noreply@estateiq.com>')
+    thread = threading.Thread(
+        target=_send_email_task,
+        args=(subject, recipient_email, plain_text, html_content, from_email),
+        daemon=True
+    )
+    thread.start()
 
 # ==========================================
 # SECTION 2: EMAIL OTP & GOOGLE SIGN-IN VIEWS

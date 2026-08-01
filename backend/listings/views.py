@@ -24,7 +24,7 @@ def list_listings(request):
     Public paginated list & search for property listings.
     Supports filtering by city, locality, property_type, bhk, price range, rera_verified.
     """
-    queryset = Listing.objects.filter(status=Listing.Status.LIVE).select_related('property', 'user')
+    queryset = Listing.objects.filter(status=Listing.Status.LIVE).select_related('property', 'user').prefetch_related('property__images')
 
     city = request.query_params.get('city')
     if city:
@@ -78,7 +78,7 @@ def get_listing_detail(request, pk):
     Public endpoint for detailed property listing information.
     Supports lookup by Listing ID or Property ID.
     """
-    listing = Listing.objects.select_related('property', 'user').filter(
+    listing = Listing.objects.select_related('property', 'user').prefetch_related('property__images').filter(
         Q(pk=pk) | Q(property_id=pk)
     ).first()
 
@@ -89,12 +89,15 @@ def get_listing_detail(request, pk):
     return Response({"error": "Listing not found"}, status=status.HTTP_404_NOT_FOUND)
 
 
+from django.db import transaction
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@transaction.atomic
 def create_listing(request):
     """
-    Creates a new property and listing. Includes duplicate detection check.
-    If same locality + area +-5% + price +-5% exists -> flags for admin review.
+    Creates a new property and listing inside atomic transaction with row locking.
+    Includes duplicate detection check. If same locality + area +-5% + price +-5% exists -> flags for admin review.
     """
     serializer = CreatePropertyListingSerializer(data=request.data)
     if not serializer.is_valid():
@@ -104,11 +107,11 @@ def create_listing(request):
     price = Decimal(str(data['price']))
     area = float(data['area_sqft'])
 
-    # Duplicate listing detection algorithm
+    # Duplicate listing detection algorithm with row locking
     min_area, max_area = area * 0.95, area * 1.05
     min_price, max_price = price * Decimal('0.95'), price * Decimal('1.05')
 
-    duplicate_exists = Property.objects.filter(
+    duplicate_exists = Property.objects.select_for_update().filter(
         locality__iexact=data['locality'],
         area_sqft__gte=min_area,
         area_sqft__lte=max_area,
@@ -771,36 +774,61 @@ def locality_heatmap(request):
     """
     Returns locality price trends, rental yield benchmarks, and growth rates for heatmap.
     """
-    heatmap_data = [
-        # Ahmedabad
+    from django.core.cache import cache
+    from django.db.models import Avg, Count, F, ExpressionWrapper, FloatField
+
+    cache_key = "locality_heatmap_data"
+    cached = cache.get(cache_key)
+    if cached:
+        return Response(cached)
+
+    # Database ORM Aggregation across active Property records
+    db_aggregates = Property.objects.values('city', 'locality').annotate(
+        count=Count('id'),
+        avg_price=Avg('price'),
+        avg_psf=ExpressionWrapper(Avg(F('price') / F('area_sqft')), output_field=FloatField())
+    )
+
+    static_benchmarks = [
         {"city": "Ahmedabad", "locality": "Bodakdev", "avg_psf": 7800, "growth_5yr": 42.5, "yield": 6.8, "demand": "High"},
         {"city": "Ahmedabad", "locality": "Satellite", "avg_psf": 7200, "growth_5yr": 38.0, "yield": 7.1, "demand": "Very High"},
         {"city": "Ahmedabad", "locality": "Prahlad Nagar", "avg_psf": 7500, "growth_5yr": 40.2, "yield": 7.4, "demand": "High"},
         {"city": "Ahmedabad", "locality": "Thaltej", "avg_psf": 8100, "growth_5yr": 45.1, "yield": 6.5, "demand": "High"},
         {"city": "Ahmedabad", "locality": "GIFT City", "avg_psf": 9200, "growth_5yr": 68.4, "yield": 8.5, "demand": "Extreme"},
-
-        # Mumbai
         {"city": "Mumbai", "locality": "Bandra West", "avg_psf": 42000, "growth_5yr": 34.0, "yield": 4.2, "demand": "Extreme"},
         {"city": "Mumbai", "locality": "Andheri West", "avg_psf": 26000, "growth_5yr": 31.5, "yield": 5.1, "demand": "High"},
         {"city": "Mumbai", "locality": "Powai", "avg_psf": 28500, "growth_5yr": 36.8, "yield": 5.4, "demand": "High"},
         {"city": "Mumbai", "locality": "Worli", "avg_psf": 48000, "growth_5yr": 29.0, "yield": 3.8, "demand": "High"},
-
-        # Delhi NCR
         {"city": "Delhi NCR", "locality": "DLF Phase 5", "avg_psf": 18500, "growth_5yr": 52.0, "yield": 5.9, "demand": "Extreme"},
         {"city": "Delhi NCR", "locality": "Golf Course Road", "avg_psf": 21000, "growth_5yr": 55.4, "yield": 5.6, "demand": "Extreme"},
         {"city": "Delhi NCR", "locality": "Noida Sector 150", "avg_psf": 9500, "growth_5yr": 48.0, "yield": 6.7, "demand": "High"},
-
-        # Bengaluru
         {"city": "Bengaluru", "locality": "Whitefield", "avg_psf": 9800, "growth_5yr": 49.2, "yield": 7.8, "demand": "Extreme"},
         {"city": "Bengaluru", "locality": "Koramangala", "avg_psf": 14500, "growth_5yr": 41.0, "yield": 6.2, "demand": "High"},
         {"city": "Bengaluru", "locality": "Sarjapur Road", "avg_psf": 8900, "growth_5yr": 51.5, "yield": 7.5, "demand": "Extreme"},
-
-        # Pune
         {"city": "Pune", "locality": "Baner", "avg_psf": 9200, "growth_5yr": 44.0, "yield": 6.9, "demand": "High"},
         {"city": "Pune", "locality": "Hinjewadi", "avg_psf": 7600, "growth_5yr": 46.8, "yield": 7.6, "demand": "Very High"},
         {"city": "Pune", "locality": "Kharadi", "avg_psf": 8800, "growth_5yr": 48.2, "yield": 7.2, "demand": "High"},
     ]
-    return Response(heatmap_data)
+
+    # Combine DB aggregated values with market benchmark data
+    results_map = {(item['city'], item['locality']): item for item in static_benchmarks}
+    for row in db_aggregates:
+        key = (row['city'], row['locality'])
+        if key in results_map:
+            results_map[key]['avg_psf'] = round(row['avg_psf'], 2) if row['avg_psf'] else results_map[key]['avg_psf']
+        else:
+            results_map[key] = {
+                "city": row['city'],
+                "locality": row['locality'],
+                "avg_psf": round(row['avg_psf'], 2) if row['avg_psf'] else 5000.0,
+                "growth_5yr": 25.0,
+                "yield": 5.5,
+                "demand": "Medium"
+            }
+
+    final_data = list(results_map.values())
+    cache.set(cache_key, final_data, 60 * 15) # Cache for 15 minutes
+    return Response(final_data)
 
 
 
