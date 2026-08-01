@@ -60,7 +60,7 @@ jobs:
         run: |
           cd ml-service
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pytest httpx
+          pip install -r requirements.txt joblib pandas scikit-learn xgboost pytest httpx
 
       - name: Run ML Microservice Health Check Test
         run: |
