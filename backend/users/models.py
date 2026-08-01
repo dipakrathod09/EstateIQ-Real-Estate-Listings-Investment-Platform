@@ -29,6 +29,10 @@ class User(AbstractUser):
     magic_link_token = models.UUIDField(blank=True, null=True, default=uuid.uuid4)
     magic_link_expires_at = models.DateTimeField(blank=True, null=True)
 
+    # Password Reset (Traditional Password Auth)
+    password_reset_code = models.CharField(max_length=6, blank=True, null=True)
+    password_reset_expires_at = models.DateTimeField(blank=True, null=True)
+
     # Post-login Onboarding Preferences (Section 4)
     preferences = models.JSONField(default=dict, blank=True)
 

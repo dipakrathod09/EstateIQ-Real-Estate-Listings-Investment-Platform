@@ -30,6 +30,26 @@ export const googleSignIn = async (email, name = '', role = 'buyer', consent = t
   return response.data;
 };
 
+export const registerWithPassword = async (email, password, name = '', role = 'buyer', consent = true) => {
+  const response = await client.post('/api/auth/password/register/', { email, password, name, role, consent });
+  return response.data;
+};
+
+export const loginWithPassword = async (email, password) => {
+  const response = await client.post('/api/auth/password/login/', { email, password });
+  return response.data;
+};
+
+export const requestPasswordReset = async (email) => {
+  const response = await client.post('/api/auth/password/reset-request/', { email });
+  return response.data;
+};
+
+export const confirmPasswordReset = async (email, code, new_password) => {
+  const response = await client.post('/api/auth/password/reset-confirm/', { email, code, new_password });
+  return response.data;
+};
+
 export const verifyPhoneNumber = async (phone_number, otp) => {
   const response = await client.post('/api/users/verify-phone/', { phone_number, otp });
   return response.data;

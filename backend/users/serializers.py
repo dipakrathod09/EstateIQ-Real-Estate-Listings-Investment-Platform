@@ -39,6 +39,25 @@ class VerifyPhoneSerializer(serializers.Serializer):
     phone_number = serializers.CharField(max_length=20)
     otp = serializers.CharField(max_length=6)
 
+class PasswordRegisterSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(min_length=6)
+    name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    role = serializers.ChoiceField(choices=User.Role.choices, default=User.Role.BUYER)
+    consent = serializers.BooleanField(default=True)
+
+class PasswordLoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField()
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6)
+    new_password = serializers.CharField(min_length=6)
+
 class RequestOTPSerializer(serializers.Serializer):
     phone_number = serializers.CharField(max_length=20)
 

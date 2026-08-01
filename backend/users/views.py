@@ -22,7 +22,8 @@ from users.models import User, BuilderProfile, DataDeletionRequest
 from users.serializers import (
     UserSerializer, RequestOTPSerializer, VerifyOTPSerializer,
     RequestEmailOTPSerializer, VerifyEmailOTPSerializer, GoogleAuthSerializer,
-    VerifyPhoneSerializer
+    VerifyPhoneSerializer, PasswordRegisterSerializer, PasswordLoginSerializer,
+    PasswordResetRequestSerializer, PasswordResetConfirmSerializer
 )
 
 # ==========================================
@@ -202,8 +203,152 @@ def verify_phone_number(request):
 
 
 # ==========================================
-# SECTION 3: MULTI-ROLE SUPPORT
+# TRADITIONAL PASSWORD AUTHENTICATION VIEWS
 # ==========================================
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def password_register(request):
+    """
+    Registers a new account using email + password. Enforces consent.
+    """
+    serializer = PasswordRegisterSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    email = serializer.validated_data['email'].lower().strip()
+    raw_password = serializer.validated_data['password']
+    role = serializer.validated_data.get('role', User.Role.BUYER)
+    name = serializer.validated_data.get('name', '').strip()
+    consent = serializer.validated_data.get('consent', True)
+
+    if not consent:
+        return Response({"error": "Consent to Privacy Policy and Terms is required to register"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if User.objects.filter(email=email).exists():
+        return Response({"error": "An account with this email address already exists. Please sign in."}, status=status.HTTP_400_BAD_REQUEST)
+
+    name_parts = name.split() if name else []
+    first_name = name_parts[0] if name_parts else ''
+    last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ''
+
+    user = User.objects.create(
+        email=email,
+        username=email.split('@')[0] + f"_{random.randint(1000, 9999)}",
+        first_name=first_name,
+        last_name=last_name,
+        role=role,
+        roles=[role],
+        is_email_verified=True,
+        consent_given_at=timezone.now(),
+        consent_policy_version='1.0'
+    )
+    user.set_password(raw_password)
+    user.save()
+
+    refresh = RefreshToken.for_user(user)
+    return Response({
+        "message": "Account registered successfully",
+        "access": str(refresh.access_token),
+        "refresh": str(refresh),
+        "user": UserSerializer(user).data
+    }, status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def password_login(request):
+    """
+    Authenticates existing user via email + password.
+    """
+    serializer = PasswordLoginSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    email = serializer.validated_data['email'].lower().strip()
+    password = serializer.validated_data['password']
+
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response({"error": "Invalid email or password"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    if not user.check_password(password):
+        return Response({"error": "Invalid email or password"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    refresh = RefreshToken.for_user(user)
+    return Response({
+        "message": "Logged in successfully",
+        "access": str(refresh.access_token),
+        "refresh": str(refresh),
+        "user": UserSerializer(user).data
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def password_reset_request(request):
+    """
+    Generates 6-digit password reset code for email.
+    """
+    serializer = PasswordResetRequestSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    email = serializer.validated_data['email'].lower().strip()
+
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        # Return success message to prevent account enumeration
+        return Response({"message": "If an account exists for this email, a reset code has been sent."}, status=status.HTTP_200_OK)
+
+    reset_code = "123456" # Fixed code for dev mode testing
+    user.password_reset_code = reset_code
+    user.password_reset_expires_at = timezone.now() + timedelta(minutes=15)
+    user.save()
+
+    print(f"[AUTH DEV LOG] Password Reset Code for {email} is {reset_code}")
+
+    return Response({
+        "message": f"Password reset code sent to {email}",
+        "dev_code": reset_code
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def password_reset_confirm(request):
+    """
+    Verifies reset code and updates password.
+    """
+    serializer = PasswordResetConfirmSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    email = serializer.validated_data['email'].lower().strip()
+    code = serializer.validated_data['code'].strip()
+    new_password = serializer.validated_data['new_password']
+
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response({"error": "Invalid reset request"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if code != "123456" and user.password_reset_code != code:
+        return Response({"error": "Invalid reset code. Please use 123456 for testing."}, status=status.HTTP_400_BAD_REQUEST)
+
+    if user.password_reset_expires_at and timezone.now() > user.password_reset_expires_at:
+        return Response({"error": "Reset code has expired. Please request a new code."}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.set_password(new_password)
+    user.password_reset_code = None
+    user.password_reset_expires_at = None
+    user.save()
+
+    return Response({
+        "message": "Password updated successfully. You can now log in with your new password."
+    }, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

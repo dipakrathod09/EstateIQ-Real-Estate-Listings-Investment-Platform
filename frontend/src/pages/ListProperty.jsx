@@ -132,26 +132,6 @@ export const ListProperty = () => {
       .then((res) => {
         setLoading(false);
         sessionStorage.removeItem('estateiq_property_draft');
-
-        // Store created listing in localStorage for instant frontend availability
-        try {
-          const createdListing = res.listing || {
-            id: Date.now(),
-            property: {
-              ...payload,
-              id: Date.now(),
-              primary_image: formData.image_url || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80',
-              images: [{ image_url: formData.image_url, is_primary: true }],
-              created_at: new Date().toISOString()
-            },
-            status: 'live',
-            created_at: new Date().toISOString()
-          };
-          const existingStr = localStorage.getItem('estateiq_my_created_listings');
-          const existing = existingStr ? JSON.parse(existingStr) : [];
-          localStorage.setItem('estateiq_my_created_listings', JSON.stringify([createdListing, ...existing]));
-        } catch (e) {}
-
         if (res.duplicate_flagged) {
           setFlaggedNotice('Your listing was submitted! Notice: A similar property exists in this locality, so it has been flagged for admin review.');
           toast({ type: 'info', title: 'Duplicate Flagged', message: 'Similar listing detected — sent to admin review.' });

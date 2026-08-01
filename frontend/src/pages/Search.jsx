@@ -139,36 +139,20 @@ export const Search = () => {
   // Data Fetching Effect
   useEffect(() => {
     setLoading(true);
-
-    const getLocalCreatedListings = () => {
-      try {
-        const saved = localStorage.getItem('estateiq_my_created_listings');
-        return saved ? JSON.parse(saved) : [];
-      } catch (e) {
-        return [];
-      }
-    };
-
     fetchListings()
       .then((data) => {
-        const localListings = getLocalCreatedListings();
-        const baseListings = Array.isArray(data) && data.length > 0 ? data : FALLBACK_LISTINGS;
-        
-        // Deduplicate by ID
-        const existingIds = new Set(baseListings.map((l) => l.id));
-        const uniqueLocal = localListings.filter((l) => !existingIds.has(l.id));
-        
-        setAllListings([...uniqueLocal, ...baseListings]);
+        if (Array.isArray(data) && data.length > 0) {
+          setAllListings(data);
+        } else {
+          setAllListings(FALLBACK_LISTINGS);
+        }
         setLoading(false);
       })
       .catch(() => {
-        const localListings = getLocalCreatedListings();
-        const existingIds = new Set(FALLBACK_LISTINGS.map((l) => l.id));
-        const uniqueLocal = localListings.filter((l) => !existingIds.has(l.id));
-        setAllListings([...uniqueLocal, ...FALLBACK_LISTINGS]);
+        setAllListings(FALLBACK_LISTINGS);
         setLoading(false);
       });
-
+    
     logEvent('search_view', { city, locality }).catch(() => {});
   }, []);
 
