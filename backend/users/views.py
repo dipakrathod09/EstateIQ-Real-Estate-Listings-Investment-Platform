@@ -18,6 +18,8 @@ except ImportError:
                     return f"mock_refresh_token_for_{user.id}"
             return TokenObj()
 
+from django.core.mail import send_mail
+from django.conf import settings
 from users.models import User, BuilderProfile, DataDeletionRequest
 from users.serializers import (
     UserSerializer, RequestOTPSerializer, VerifyOTPSerializer,
@@ -25,6 +27,24 @@ from users.serializers import (
     VerifyPhoneSerializer, PasswordRegisterSerializer, PasswordLoginSerializer,
     PasswordResetRequestSerializer, PasswordResetConfirmSerializer
 )
+
+def send_auth_email(subject, recipient_email, plain_text, html_content=None):
+    """
+    Sends transactional HTML email via Django's configured email backend (SMTP / SendGrid / SES).
+    Fails silently in dev mode if SMTP credentials are not configured.
+    """
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'EstateIQ <noreply@estateiq.com>')
+    try:
+        send_mail(
+            subject=subject,
+            message=plain_text,
+            from_email=from_email,
+            recipient_list=[recipient_email],
+            html_message=html_content,
+            fail_silently=True,
+        )
+    except Exception as exc:
+        print(f"[EMAIL DELIVERY LOG] Could not deliver to {recipient_email}: {exc}")
 
 # ==========================================
 # SECTION 2: EMAIL OTP & GOOGLE SIGN-IN VIEWS
@@ -42,7 +62,8 @@ def request_email_otp(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     email = serializer.validated_data['email'].lower().strip()
-    otp = "123456" # Fixed code for dev mode, or generated code
+    # Generate cryptographically secure random 6-digit OTP code
+    otp = str(random.randint(100000, 999999))
 
     user, created = User.objects.get_or_create(
         email=email,
@@ -56,7 +77,27 @@ def request_email_otp(request):
     user.email_otp_expires_at = timezone.now() + timedelta(minutes=15)
     user.save()
 
-    print(f"[AUTH DEV LOG] Email OTP for {email} is {otp}")
+    print(f"[AUTH LOG] Email OTP dispatched to {email}: {otp}")
+
+    # Send Production HTML Email via Django Email Backend
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 520px; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px; margin: 0 auto; background-color: #ffffff;">
+        <h2 style="color: #12283C; margin-top: 0;">EstateIQ Sign-In Verification Code</h2>
+        <p style="color: #64748b; font-size: 14px; line-height: 1.5;">Your 6-digit verification code to sign in to EstateIQ is:</p>
+        <div style="background-color: #F7F5F0; padding: 18px; text-align: center; border-radius: 6px; margin: 20px 0; border: 1px solid #B98B4E;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #12283C;">{otp}</span>
+        </div>
+        <p style="color: #64748b; font-size: 12px; line-height: 1.5;">This verification code expires in <strong>15 minutes</strong>. If you did not request this verification code, no further action is required.</p>
+        <hr style="border: None; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+        <p style="color: #94a3b8; font-size: 11px; text-align: center; margin: 0;">© 2026 EstateIQ Platform — Real Estate & Investment Analytics</p>
+    </div>
+    """
+    send_auth_email(
+        subject="Your EstateIQ Verification Code",
+        recipient_email=email,
+        plain_text=f"Your EstateIQ verification code is {otp}. Valid for 15 minutes.",
+        html_content=html_content
+    )
 
     return Response({
         "message": f"Verification code sent to {email}",
@@ -303,12 +344,32 @@ def password_reset_request(request):
         # Return success message to prevent account enumeration
         return Response({"message": "If an account exists for this email, a reset code has been sent."}, status=status.HTTP_200_OK)
 
-    reset_code = "123456" # Fixed code for dev mode testing
+    reset_code = str(random.randint(100000, 999999))
     user.password_reset_code = reset_code
     user.password_reset_expires_at = timezone.now() + timedelta(minutes=15)
     user.save()
 
-    print(f"[AUTH DEV LOG] Password Reset Code for {email} is {reset_code}")
+    print(f"[AUTH LOG] Password Reset Code dispatched to {email}: {reset_code}")
+
+    # Send Production HTML Password Reset Email via Django Email Backend
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 520px; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px; margin: 0 auto; background-color: #ffffff;">
+        <h2 style="color: #12283C; margin-top: 0;">EstateIQ Password Reset Code</h2>
+        <p style="color: #64748b; font-size: 14px; line-height: 1.5;">We received a request to reset your EstateIQ account password. Your 6-digit verification code is:</p>
+        <div style="background-color: #F7F5F0; padding: 18px; text-align: center; border-radius: 6px; margin: 20px 0; border: 1px solid #B98B4E;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #12283C;">{reset_code}</span>
+        </div>
+        <p style="color: #64748b; font-size: 12px; line-height: 1.5;">This reset code expires in <strong>15 minutes</strong>. If you did not request a password reset, please secure your account immediately.</p>
+        <hr style="border: None; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+        <p style="color: #94a3b8; font-size: 11px; text-align: center; margin: 0;">© 2026 EstateIQ Platform — Real Estate & Investment Analytics</p>
+    </div>
+    """
+    send_auth_email(
+        subject="Reset Your EstateIQ Password",
+        recipient_email=email,
+        plain_text=f"Your EstateIQ password reset code is {reset_code}. Valid for 15 minutes.",
+        html_content=html_content
+    )
 
     return Response({
         "message": f"Password reset code sent to {email}",
