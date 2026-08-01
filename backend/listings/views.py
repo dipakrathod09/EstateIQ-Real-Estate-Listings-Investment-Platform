@@ -152,7 +152,7 @@ def create_listing(request):
         )
 
     has_rera = bool(data.get('rera_number', '').strip())
-    initial_status = Listing.Status.LIVE if not duplicate_exists else Listing.Status.DRAFT
+    initial_status = Listing.Status.LIVE
 
     user = request.user if request.user and request.user.is_authenticated else User.objects.first()
     if not user:

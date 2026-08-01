@@ -32,7 +32,18 @@ export const Dashboard = () => {
       fetchSavedSearches().catch(() => []),
     ]).then(([userData, listingsData, favData, inqData, searchData]) => {
       if (userData) setUser(userData);
-      setMyListings(Array.isArray(listingsData) ? listingsData : []);
+
+      let localCreated = [];
+      try {
+        const saved = localStorage.getItem('estateiq_my_created_listings');
+        if (saved) localCreated = JSON.parse(saved);
+      } catch (e) {}
+
+      const baseListings = Array.isArray(listingsData) ? listingsData : [];
+      const existingIds = new Set(baseListings.map((l) => l.id));
+      const uniqueLocal = localCreated.filter((l) => !existingIds.has(l.id));
+
+      setMyListings([...uniqueLocal, ...baseListings]);
       setFavorites(Array.isArray(favData) ? favData : []);
       
       // Fallback sample inquiries for rich UI
