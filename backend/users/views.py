@@ -130,9 +130,10 @@ def verify_email_otp(request):
     except User.DoesNotExist:
         return Response({"error": "No pending login found for this email address"}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Validate OTP (Dev code 123456 or matching OTP within 15 min)
-    if otp != "123456" and user.email_otp != otp:
-        return Response({"error": "Invalid OTP code. Use 123456 for testing."}, status=status.HTTP_400_BAD_REQUEST)
+    # Validate OTP (123456 bypass only allowed when settings.DEBUG is True)
+    is_dev_bypass = settings.DEBUG and otp == "123456"
+    if not is_dev_bypass and user.email_otp != otp:
+        return Response({"error": "Invalid OTP code."}, status=status.HTTP_400_BAD_REQUEST)
 
     if user.email_otp_expires_at and timezone.now() > user.email_otp_expires_at:
         return Response({"error": "OTP code has expired. Please request a new code."}, status=status.HTTP_400_BAD_REQUEST)
@@ -396,8 +397,9 @@ def password_reset_confirm(request):
     except User.DoesNotExist:
         return Response({"error": "Invalid reset request"}, status=status.HTTP_400_BAD_REQUEST)
 
-    if code != "123456" and user.password_reset_code != code:
-        return Response({"error": "Invalid reset code. Please use 123456 for testing."}, status=status.HTTP_400_BAD_REQUEST)
+    is_dev_bypass = settings.DEBUG and code == "123456"
+    if not is_dev_bypass and user.password_reset_code != code:
+        return Response({"error": "Invalid reset code."}, status=status.HTTP_400_BAD_REQUEST)
 
     if user.password_reset_expires_at and timezone.now() > user.password_reset_expires_at:
         return Response({"error": "Reset code has expired. Please request a new code."}, status=status.HTTP_400_BAD_REQUEST)
@@ -528,8 +530,9 @@ def verify_otp(request):
     name = serializer.validated_data.get('name', '').strip()
     email = serializer.validated_data.get('email', '').strip()
 
-    if otp != "123456":
-        return Response({"error": "Invalid OTP code. Use 123456 for testing."}, status=status.HTTP_400_BAD_REQUEST)
+    is_dev_bypass = settings.DEBUG and otp == "123456"
+    if not is_dev_bypass and otp != "123456":
+        return Response({"error": "Invalid OTP code."}, status=status.HTTP_400_BAD_REQUEST)
 
     username = f"user_{phone_number[-6:]}"
     user, created = User.objects.get_or_create(

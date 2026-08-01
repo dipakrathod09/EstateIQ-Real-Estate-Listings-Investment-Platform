@@ -677,9 +677,10 @@ def predict_custom_price(request):
         "listed_price": listed_price,
     }
 
-    import requests
+    import requests, os
+    ml_service_url = os.getenv('ML_SERVICE_URL', 'http://localhost:8001').rstrip('/')
     try:
-        res = requests.post("http://localhost:8001/predict-price", json=payload, timeout=2.5)
+        res = requests.post(f"{ml_service_url}/predict-price", json=payload, timeout=2.5)
         if res.status_code == 200:
             resp_data = res.json()
             predicted = resp_data["predicted_price"]
